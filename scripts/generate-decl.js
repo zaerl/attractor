@@ -96,12 +96,12 @@ function fn_decl(type_info, unsigned) {
 }
 
 function fn_content(type_info, unsigned) {
-    const comparison = type_info.name === 'char*' ? 'result && expected ? strcmp(result, expected) == 0 : 0' : 'result == expected';
+    const comparison = type_info.name === 'char*' ? '((result == expected) || ((result && expected) ? strcmp(result, expected) == 0 : 0))' : 'result == expected';
     const format = format_name(type_info, unsigned, true);
     const s_format = '%' + (type_info.name.endsWith('*') ? 'p' : format);
 
     return fn_decl(type_info, unsigned) + ` {
-    int test = att_assert("${s_format}", ${comparison}, description);
+    int test = att_assert("${type_info.name}", ${comparison}, description);
 
     if(!test) {
         ATT_ERROR_MESSAGE(result, "${s_format}", expected);
