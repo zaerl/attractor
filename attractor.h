@@ -1,5 +1,5 @@
 /**
- * 2024-02-06
+ * 2024-02-12
  *
  * The attractor unit test library
  *
@@ -26,6 +26,14 @@ extern "C" {
 
 #ifndef ATT_VERBOSE
 #define ATT_VERBOSE 1
+#endif
+
+#ifndef ATT_SHOW_ERROR
+#define ATT_SHOW_ERROR 1
+#endif
+
+#ifndef ATT_STRING_AS_POINTERS
+#define ATT_STRING_AS_POINTERS 0
 #endif
 
 #define ATT_ASSERT(VALUE, EXPECTED, MESSAGE) _Generic((0, VALUE), \
@@ -68,7 +76,9 @@ ATT_API unsigned int att_assert_unknown(int result, int expected, const char *de
 
 unsigned int att_get_valid_tests(void);
 unsigned int att_get_total_tests(void);
+
 void att_set_verbose(unsigned int verbose);
+void att_set_show_error(unsigned int show_error);
 
 #ifdef __cplusplus
 }

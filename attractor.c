@@ -1,6 +1,6 @@
 
 /**
- * 2024-02-06
+ * 2024-02-12
  *
  * The attractor unit test library
  */
@@ -12,7 +12,7 @@
 #include <string.h>
 
 #define ATT_ERROR_MESSAGE(RESULT, FORMAT, EXPECTED) \
-if(att_verbose >= 1) { \
+if(att_verbose >= 1 && att_show_error) { \
     fputs("Expected \x1B[32m", stdout); \
     printf(FORMAT, EXPECTED); \
     fputs("\x1B[0m, got \x1B[31m", stdout); \
@@ -23,6 +23,7 @@ if(att_verbose >= 1) { \
 static unsigned int att_valid_tests = 0;
 static unsigned int att_total_tests = 0;
 static unsigned int att_verbose = ATT_VERBOSE;
+static unsigned int att_show_error = ATT_SHOW_ERROR;
 
 unsigned int att_get_valid_tests(void) {
     return att_valid_tests;
@@ -34,6 +35,10 @@ unsigned int att_get_total_tests(void) {
 
 void att_set_verbose(unsigned int verbose) {
     att_verbose = verbose;
+}
+
+void att_set_show_error(unsigned int show_error) {
+    att_show_error = show_error;
 }
 
 int att_assert(const char *type, int test, const char *description);
@@ -62,7 +67,7 @@ ATT_API unsigned int att_assert_p_c(char* result, char* expected, const char *de
     int test = att_assert("char*", ((result == expected) || ((result && expected) ? strcmp(result, expected) == 0 : 0)), description);
 
     if(!test) {
-        ATT_ERROR_MESSAGE(result, "%p", expected);
+        ATT_ERROR_MESSAGE(result, ATT_STRING_AS_POINTERS == 1 ? "%p" : "\"%s\"", expected);
     }
 
     return test;

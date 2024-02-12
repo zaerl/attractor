@@ -96,15 +96,20 @@ function fn_decl(type_info, unsigned) {
 }
 
 function fn_content(type_info, unsigned) {
-    const comparison = type_info.name === 'char*' ? '((result == expected) || ((result && expected) ? strcmp(result, expected) == 0 : 0))' : 'result == expected';
+    let comparison = 'result == expected';
     const format = format_name(type_info, unsigned, true);
-    const s_format = '%' + (type_info.name.endsWith('*') ? 'p' : format);
+    let s_format = '"%' + (type_info.name.endsWith('*') ? 'p' : format) + '"';
+
+    if(type_info.name === 'char*') {
+        comparison = '((result == expected) || ((result && expected) ? strcmp(result, expected) == 0 : 0))';
+        s_format = 'ATT_STRING_AS_POINTERS == 1 ? "%p" : "\\"%s\\""';
+    }
 
     return fn_decl(type_info, unsigned) + ` {
     int test = att_assert("${type_info.name}", ${comparison}, description);
 
     if(!test) {
-        ATT_ERROR_MESSAGE(result, "${s_format}", expected);
+        ATT_ERROR_MESSAGE(result, ${s_format}, expected);
     }
 
     return test;
@@ -160,7 +165,7 @@ ${header()}
 #include <string.h>
 
 #define ATT_ERROR_MESSAGE(RESULT, FORMAT, EXPECTED) \\
-if(att_verbose >= 1) { \\
+if(att_verbose >= 1 && att_show_error) { \\
     fputs("Expected \\x1B[32m", stdout); \\
     printf(FORMAT, EXPECTED); \\
     fputs("\\x1B[0m, got \\x1B[31m", stdout); \\
@@ -171,6 +176,7 @@ if(att_verbose >= 1) { \\
 static unsigned int att_valid_tests = 0;
 static unsigned int att_total_tests = 0;
 static unsigned int att_verbose = ATT_VERBOSE;
+static unsigned int att_show_error = ATT_SHOW_ERROR;
 
 unsigned int att_get_valid_tests(void) {
     return att_valid_tests;
@@ -182,6 +188,10 @@ unsigned int att_get_total_tests(void) {
 
 void att_set_verbose(unsigned int verbose) {
     att_verbose = verbose;
+}
+
+void att_set_show_error(unsigned int show_error) {
+    att_show_error = show_error;
 }
 
 int att_assert(const char *type, int test, const char *description);
@@ -259,6 +269,14 @@ extern "C" {
 #define ATT_VERBOSE 1
 #endif
 
+#ifndef ATT_SHOW_ERROR
+#define ATT_SHOW_ERROR 1
+#endif
+
+#ifndef ATT_STRING_AS_POINTERS
+#define ATT_STRING_AS_POINTERS 0
+#endif
+
 #define ATT_ASSERT(VALUE, EXPECTED, MESSAGE) _Generic((0, VALUE), \\
     ${generics.join(', \\\n    ')} \\
 )(VALUE, EXPECTED, MESSAGE);
@@ -267,7 +285,9 @@ ${decls.join(';\n')};
 
 unsigned int att_get_valid_tests(void);
 unsigned int att_get_total_tests(void);
+
 void att_set_verbose(unsigned int verbose);
+void att_set_show_error(unsigned int show_error);
 
 #ifdef __cplusplus
 }

@@ -45,7 +45,7 @@ int main(int argc, const char *argv[]) {
     /* Green if valid and red if not */
     const char *color_code = valid ? "\x1B[32m" : "\x1B[31m";
 
-    printf("\nTests valid/run: %s%d/%d\n\x1B[0m", color_code, tests_valid, tests_total);
+    printf("Tests valid/run: %s%d/%d\n\x1B[0m", color_code, tests_valid, tests_total);
 
     clock_gettime(CLOCK_MONOTONIC, &end);
     elapsed = (end.tv_sec - start.tv_sec) + (end.tv_nsec - start.tv_nsec) / 1e9;
