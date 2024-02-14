@@ -164,6 +164,11 @@ ${header()}
 #include <stdlib.h>
 #include <string.h>
 
+#if ATT_USE_IOCTL > 0
+#include <sys/ioctl.h>
+#include <unistd.h>
+#endif
+
 #define ATT_ERROR_MESSAGE(RESULT, FORMAT, EXPECTED) \\
 if(att_verbose >= 1 && att_show_error) { \\
     fputs("Expected \\x1B[32m", stdout); \\
@@ -177,6 +182,7 @@ static unsigned int att_valid_tests = 0;
 static unsigned int att_total_tests = 0;
 static unsigned int att_verbose = ATT_VERBOSE;
 static unsigned int att_show_error = ATT_SHOW_ERROR;
+static unsigned int att_columns = 80;
 
 unsigned int att_get_valid_tests(void) {
     return att_valid_tests;
@@ -201,6 +207,18 @@ ${contents.join('\n\n')}
 int att_assert(const char *format, int test, const char *description) {
     ++att_total_tests;
 
+#if ATT_USE_IOCTL > 0
+    if(att_total_tests == 1) {
+        struct winsize w;
+
+        ioctl(STDOUT_FILENO, TIOCGWINSZ, &w);
+
+        if(w.ws_col > 0) {
+            att_columns = w.ws_col;
+        }
+    }
+#endif
+
     if(test) {
         ++att_valid_tests;
     }
@@ -216,7 +234,7 @@ int att_assert(const char *format, int test, const char *description) {
     } else {
         const char *ok = "\\x1B[32mOK\\x1B[0m";
         const char *fail = "\\x1B[31mFAIL\\x1B[0m";
-        int length = 80 - (strlen(format) + strlen(description) + (test ? 2 : 4) + 5);
+        int length = att_columns - (strlen(format) + strlen(description) + (test ? 2 : 4) + 5);
 
         if(length <= 0) {
             length = 2;
@@ -275,6 +293,10 @@ extern "C" {
 
 #ifndef ATT_STRING_AS_POINTERS
 #define ATT_STRING_AS_POINTERS 0
+#endif
+
+#ifndef ATT_USE_IOCTL
+#define ATT_USE_IOCTL 0
 #endif
 
 #define ATT_ASSERT(VALUE, EXPECTED, MESSAGE) _Generic((0, VALUE), \\
