@@ -6,7 +6,7 @@ Attractor is a single function unit test framework written in C11.
 Copy `attractor.c` and `attractor.h` in your test folder.
 
 ## Usage
-Attractor provide a `ATT_ASSERT` macro that you can use to test your code. The macro outputs a number different from zero if the test pass:
+Attractor provide a `ATT_ASSERT` macro that you can use to test your code. The macro outputs a number different from zero if the test passes:
 ```c
 ATT_ASSERT(the_value_to_test, the_expected_value, "description")
 ```
@@ -84,7 +84,6 @@ Expected 2.000000, got 3.000000
 Tests valid/run: 2/3
 ```
 And with `verbose = 2`:
-
 ```
 [%d] one == one:                                                              OK
 [%f] 2.0 == 2.0:                                                            FAIL
@@ -95,5 +94,10 @@ Expected 2.000000, got 3.000000
 Tests valid/run: 2/3
 ```
 
-## Advance testing
+## Advance usage
+
+Attractor does output 80-character strings and aligns `OK`/`FAIL` at the line end. By Defining `#define ATT_VERBOSE 1`, it will use `ioctl` and align it at the end of the terminal window.
+
+Attractor treats strings as strings. So the content of the string is output to the terminal as it is in case of error. By defining `#define ATT_STRING_AS_POINTERS 1`, it will simply output the pointer address.
+
 Check [tests/test.c](tests/test.c) for an advanced example that uses multi-threaded tests.
