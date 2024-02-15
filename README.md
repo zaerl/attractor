@@ -96,7 +96,7 @@ Tests valid/run: 2/3
 
 ## Advance usage
 
-Attractor does output 80-character strings and aligns `OK`/`FAIL` at the line end. By Defining `#define ATT_VERBOSE 1`, it will use `ioctl` and align it at the end of the terminal window.
+Attractor does output 80-character strings and aligns `OK`/`FAIL` at the line end. By Defining `#define ATT_USE_IOCTL 1`, it will use `ioctl` and align it at the end of the terminal window.
 
 Attractor treats strings as strings. So the content of the string is output to the terminal as it is in case of error. By defining `#define ATT_STRING_AS_POINTERS 1`, it will simply output the pointer address.
 
