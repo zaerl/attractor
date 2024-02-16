@@ -163,19 +163,16 @@ ${header()}
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
-
-#if ATT_USE_IOCTL > 0
 #include <sys/ioctl.h>
 #include <unistd.h>
-#endif
 
 #define ATT_ERROR_MESSAGE(RESULT, FORMAT, EXPECTED) \\
 if(att_verbose >= 1 && att_show_error) { \\
-    fputs("Expected \\x1B[32m", stdout); \\
+    fputs(att_show_colors ? "Expected \\x1B[32m" : "Expected ", stdout); \\
     printf(FORMAT, EXPECTED); \\
-    fputs("\\x1B[0m, got \\x1B[31m", stdout); \\
+    fputs(att_show_colors ? "\\x1B[0m, got \\x1B[31m" : ", got ", stdout); \\
     printf(FORMAT, RESULT); \\
-    fputs("\\x1B[0m\\n\\n", stdout); \\
+    fputs(att_show_colors ? "\\x1B[0m\\n\\n" : "\\n\\n", stdout); \\
 }
 
 static unsigned int att_valid_tests = 0;
@@ -183,6 +180,7 @@ static unsigned int att_total_tests = 0;
 static unsigned int att_verbose = ATT_VERBOSE;
 static unsigned int att_show_error = ATT_SHOW_ERROR;
 static unsigned int att_columns = 80;
+static int att_show_colors = 0;
 
 unsigned int att_get_valid_tests(void) {
     return att_valid_tests;
@@ -207,17 +205,20 @@ ${contents.join('\n\n')}
 int att_assert(const char *format, int test, const char *description) {
     ++att_total_tests;
 
-#if ATT_USE_IOCTL > 0
+    // Initialize the library
     if(att_total_tests == 1) {
-        struct winsize w;
+        if(isatty(STDOUT_FILENO)) {
+            struct winsize w;
 
-        ioctl(STDOUT_FILENO, TIOCGWINSZ, &w);
+            ioctl(STDOUT_FILENO, TIOCGWINSZ, &w);
 
-        if(w.ws_col > 0) {
-            att_columns = w.ws_col;
+            if(w.ws_col > 0) {
+                att_columns = w.ws_col;
+            }
+
+            att_show_colors = 1;
         }
     }
-#endif
 
     if(test) {
         ++att_valid_tests;
@@ -226,14 +227,14 @@ int att_assert(const char *format, int test, const char *description) {
     if(att_verbose == 0) {
         return test;
     } else if(att_verbose == 1) {
-        fputs(test ? "." : "\\x1B[31mF\\x1B[0m", stdout);
+        fputs(test ? "." : (att_show_colors ? "\\x1B[31mF\\x1B[0m" : "F"), stdout);
 
         if(!test) {
             fputs("\\n", stdout);
         }
     } else {
-        const char *ok = "\\x1B[32mOK\\x1B[0m";
-        const char *fail = "\\x1B[31mFAIL\\x1B[0m";
+        const char *ok = att_show_colors ? "\\x1B[32mOK\\x1B[0m" : "OK";
+        const char *fail = att_show_colors ? "\\x1B[31mFAIL\\x1B[0m" : "FAIL";
         int length = att_columns - (strlen(format) + strlen(description) + (test ? 2 : 4) + 5);
 
         if(length <= 0) {
@@ -247,7 +248,8 @@ int att_assert(const char *format, int test, const char *description) {
             spaces[i] = ' ';
         }
 
-        printf("[%s] \\x1b[34m%s\\x1b[0m: %s%s\\n", format, description, spaces, test ? ok : fail);
+        printf(att_show_colors ? "[%s] \\x1b[34m%s\\x1b[0m: %s%s\\n" : "[%s] %s: %s%s\\n",
+            format, description, spaces, test ? ok : fail);
     }
 
     return test;
@@ -293,10 +295,6 @@ extern "C" {
 
 #ifndef ATT_STRING_AS_POINTERS
 #define ATT_STRING_AS_POINTERS 0
-#endif
-
-#ifndef ATT_USE_IOCTL
-#define ATT_USE_IOCTL 0
 #endif
 
 #define ATT_ASSERT(VALUE, EXPECTED, MESSAGE) _Generic((0, VALUE), \\

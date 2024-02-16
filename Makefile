@@ -1,7 +1,7 @@
 # This is the Makefile used to generate the attractor.h and attractor.c
 # files and run tests. Please ignore it.
 CC = gcc
-CFLAGS = -Wall -Wextra -Wno-unused-parameter -std=c11 -DATT_USE_IOCTL=1
+CFLAGS = -Wall -Wextra -Wno-unused-parameter -std=c11
 
 SRC_DIR = .
 TEST_DIR = tests
