@@ -16,13 +16,10 @@ TEST_OBJS = $(patsubst $(TEST_DIR)/%.c, $(BIN_DIR)/%.o, $(TEST_SRCS))
 # Executable name
 TEST_EXECUTABLE = $(BIN_DIR)/test
 
-all: $(TEST_EXECUTABLE)
+all: generate $(TEST_EXECUTABLE)
 
-$(ATTRACTOR_H):
-	node scripts/generate-decl.js > $(ATTRACTOR_H)
-
-$(ATTRACTOR_C): $(ATTRACTOR_H)
-	node scripts/generate-decl.js c > $(ATTRACTOR_C)
+generate:
+	node scripts/generate-decl.js && node scripts/generate-decl.js c
 
 $(BIN_DIR)/%.o: $(TEST_DIR)/%.c
 	$(CC) $(CFLAGS) $(INCLUDES) -c $< -o $@
@@ -34,6 +31,6 @@ test: $(TEST_EXECUTABLE)
 	$(TEST_EXECUTABLE)
 
 clean:
-	rm -f $(ATTRACTOR_H) $(ATTRACTOR_C) $(TEST_OBJS) $(TEST_EXECUTABLE)
+	rm -f $(TEST_OBJS) $(TEST_EXECUTABLE)
 
-.PHONY: all clean
+.PHONY: all clean generate test

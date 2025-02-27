@@ -1,7 +1,5 @@
 
 /**
- * 2024-02-16
- *
  * The attractor unit test library
  */
 

@@ -1,4 +1,5 @@
 // This is a script used to generate functions declarations for the attractor library
+import { readFileSync, writeFileSync } from 'fs';
 
 const types = [
     {
@@ -61,8 +62,18 @@ const generics = [];
 const decls = [];
 const contents = [];
 
-const today = new Date();
-const date = today.toISOString().split('T')[0];
+function substitute_text(file_content, start, end, replacement) {
+    const start_index = file_content.indexOf(start) + start.length;
+    const end_index = end === null ? null : file_content.indexOf(end, start_index);
+
+    const ret = file_content.slice(0, start_index) + replacement;
+
+    if(end_index !== null) {
+      return ret + file_content.slice(end_index);
+    } else {
+      return ret + "\n";
+    }
+  }
 
 function type_name(type_info, unsigned) {
     return (unsigned ? 'unsigned ': '') + type_info.name;
@@ -92,7 +103,7 @@ function fn_decl(type_info, unsigned) {
         type = type_info.alt_name;
     }
 
-    return `ATT_API unsigned int ${fn}(${type} result, ${type} expected, const char *description)`;
+    return `\nATT_API unsigned int ${fn}(${type} result, ${type} expected, const char *description)`;
 }
 
 function fn_content(type_info, unsigned) {
@@ -123,15 +134,6 @@ function generic_decl(type_info, unsigned) {
     return `${type}: ${fn}`;
 }
 
-function header() {
-    return `/**
- * ${date}
- *
- * The attractor unit test library
- */
-`
-}
-
 const generate_c = process.argv.length === 3 && process.argv[2] === 'c';
 
 for(const type_info of types) {
@@ -156,161 +158,24 @@ for(const type_info of types) {
 }
 
 if(generate_c) {
-    console.log(`
-${header()}
-#include "attractor.h"
+    let file_content = readFileSync('./attractor.c', 'utf-8');
+    file_content = substitute_text(
+        file_content, "int att_assert(const char *type, int test, const char *description);\n",
+        "\n\nint att_assert(const char *format",
+        contents.join('\n'));
 
-#include <stdio.h>
-#include <stdlib.h>
-#include <string.h>
-#include <sys/ioctl.h>
-#include <unistd.h>
+    writeFileSync('./attractor.c', file_content);
+} else {
+    let file_content = readFileSync('./attractor.h', 'utf-8');
+    let substitution = "\n#define ATT_ASSERT(VALUE, EXPECTED, MESSAGE) _Generic((0, VALUE), \\\n    " +
+        generics.join(', \\\n    ') +
+        " \\\n)(VALUE, EXPECTED, MESSAGE);\n" +
+        decls.join(';') + ";";
 
-#define ATT_ERROR_MESSAGE(RESULT, FORMAT, EXPECTED) \\
-if(att_verbose >= 1 && att_show_error) { \\
-    fputs(att_show_colors ? "Expected \\x1B[32m" : "Expected ", stdout); \\
-    printf(FORMAT, EXPECTED); \\
-    fputs(att_show_colors ? "\\x1B[0m, got \\x1B[31m" : ", got ", stdout); \\
-    printf(FORMAT, RESULT); \\
-    fputs(att_show_colors ? "\\x1B[0m\\n\\n" : "\\n\\n", stdout); \\
+    file_content = substitute_text(
+        file_content, "#define ATT_STRING_AS_POINTERS 0\n#endif\n",
+        "\n\nunsigned int att_get_valid_tests(void);",
+        substitution);
+
+    writeFileSync('./attractor.h', file_content);
 }
-
-static unsigned int att_valid_tests = 0;
-static unsigned int att_total_tests = 0;
-static unsigned int att_verbose = ATT_VERBOSE;
-static unsigned int att_show_error = ATT_SHOW_ERROR;
-static unsigned int att_columns = 80;
-static int att_show_colors = 0;
-
-unsigned int att_get_valid_tests(void) {
-    return att_valid_tests;
-}
-
-unsigned int att_get_total_tests(void) {
-    return att_total_tests;
-}
-
-void att_set_verbose(unsigned int verbose) {
-    att_verbose = verbose;
-}
-
-void att_set_show_error(unsigned int show_error) {
-    att_show_error = show_error;
-}
-
-int att_assert(const char *type, int test, const char *description);
-
-${contents.join('\n\n')}
-
-int att_assert(const char *format, int test, const char *description) {
-    ++att_total_tests;
-
-    // Initialize the library
-    if(att_total_tests == 1) {
-        if(isatty(STDOUT_FILENO)) {
-            struct winsize w;
-
-            ioctl(STDOUT_FILENO, TIOCGWINSZ, &w);
-
-            if(w.ws_col > 0) {
-                att_columns = w.ws_col;
-            }
-
-            att_show_colors = 1;
-        }
-    }
-
-    if(test) {
-        ++att_valid_tests;
-    }
-
-    if(att_verbose == 0) {
-        return test;
-    } else if(att_verbose == 1) {
-        fputs(test ? "." : (att_show_colors ? "\\x1B[31mF\\x1B[0m" : "F"), stdout);
-
-        if(!test) {
-            fputs("\\n", stdout);
-        }
-    } else {
-        const char *ok = att_show_colors ? "\\x1B[32mOK\\x1B[0m" : "OK";
-        const char *fail = att_show_colors ? "\\x1B[31mFAIL\\x1B[0m" : "FAIL";
-        int length = att_columns - (strlen(format) + strlen(description) + (test ? 2 : 4) + 5);
-
-        if(length <= 0) {
-            length = 2;
-        }
-
-        char spaces[length + 1];
-        spaces[length] = '\\0';
-
-        for(int i = 0; i < length; i++) {
-            spaces[i] = ' ';
-        }
-
-        printf(att_show_colors ? "[%s] \\x1b[34m%s\\x1b[0m: %s%s\\n" : "[%s] %s: %s%s\\n",
-            format, description, spaces, test ? ok : fail);
-    }
-
-    return test;
-}
-`);
-
-    return;
-}
-
-console.log(`/**
- * ${date}
- *
- * The attractor unit test library
- *
- * Usage:
- *
- * #include <attractor.h>
- *
- * int var_to_test = 1;
- * int expected_value = 1;
- *
- * ATT_ASSERT(var_to_test, expected_value, "one == one");
- */
-
-#ifndef ATT_TEST_H
-#define ATT_TEST_H
-
-#ifdef __cplusplus
-extern "C" {
-#endif
-
-#ifndef ATT_API
-#define ATT_API
-#endif
-
-#ifndef ATT_VERBOSE
-#define ATT_VERBOSE 1
-#endif
-
-#ifndef ATT_SHOW_ERROR
-#define ATT_SHOW_ERROR 1
-#endif
-
-#ifndef ATT_STRING_AS_POINTERS
-#define ATT_STRING_AS_POINTERS 0
-#endif
-
-#define ATT_ASSERT(VALUE, EXPECTED, MESSAGE) _Generic((0, VALUE), \\
-    ${generics.join(', \\\n    ')} \\
-)(VALUE, EXPECTED, MESSAGE);
-
-${decls.join(';\n')};
-
-unsigned int att_get_valid_tests(void);
-unsigned int att_get_total_tests(void);
-
-void att_set_verbose(unsigned int verbose);
-void att_set_show_error(unsigned int show_error);
-
-#ifdef __cplusplus
-}
-#endif
-
-#endif /* ATT_TEST_H */`);
