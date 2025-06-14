@@ -275,7 +275,7 @@ int att_assert(const char *format, int test, const char *description) {
             spaces[i] = ' ';
         }
 
-        printf(att_show_colors ? "[%s] \x1b[34m%s\x1b[0m: %s%s\n" : "[%s] %s: %s%s\n",
+        printf(att_show_colors ? "[\x1b[36m%s\x1b[0m] %s: %s%s\n" : "[%s] %s: %s%s\n",
             format, description, spaces, test ? ok : fail);
     }
 
