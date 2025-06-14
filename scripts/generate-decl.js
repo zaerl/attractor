@@ -121,7 +121,7 @@ function fn_content(type_info, unsigned, is_const) {
     if(type_info.name === 'default') {
         comparison = `att_callback ? att_callback(result, expected, description) : (${comparison})`;
         type_name = `att_callback ? "callback" : "default"`;
-    } else if(type_info.name === 'char*') {
+    } else if(type_info.name === 'char*' || type_info.name === 'const char*') {
         comparison = '((result == expected) || ((result && expected) ? strcmp(result, expected) == 0 : 0))';
         s_format = 'ATT_STRING_AS_POINTERS == 1 ? "%p" : "\\"%s\\""';
     }

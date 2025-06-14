@@ -16,6 +16,9 @@ void *test_strings(void *arg) {
     ATT_ASSERT(cstr, "qux", "Const \"qux\" = \"qux\"")
     ATT_ASSERT((char*)cstr, "qux", "Const \"qux\" to not const = \"qux\"")
 
+    const char* cstr2 = "qux";
+    ATT_ASSERT(cstr, cstr2, "Const \"qux\" = const \"qux\"")
+
     ATT_ASSERT((char*)NULL, NULL, "NULL")
 
     return NULL;
