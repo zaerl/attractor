@@ -35,7 +35,7 @@ The `ATT_ASSERT` macro accept these types:
 16. `void*`
 17. `_Bool`
 
-In case of unknown type the input is assumed to be `int`.
+In case of unknown type the input is assumed to be `void*`.
 
 ## API
 

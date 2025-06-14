@@ -74,7 +74,7 @@ ATT_API unsigned int att_assert_lf(double result, double expected, const char *d
 ATT_API unsigned int att_assert_Lf(long double result, long double expected, const char *description);
 ATT_API unsigned int att_assert_p_p(void* result, void* expected, const char *description);
 ATT_API unsigned int att_assert_b(_Bool result, _Bool expected, const char *description);
-ATT_API unsigned int att_assert_unknown(int result, int expected, const char *description);
+ATT_API unsigned int att_assert_unknown(void* result, void* expected, const char *description);
 
 unsigned int att_get_valid_tests(void);
 unsigned int att_get_total_tests(void);

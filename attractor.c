@@ -217,11 +217,11 @@ ATT_API unsigned int att_assert_b(_Bool result, _Bool expected, const char *desc
     return test;
 }
 
-ATT_API unsigned int att_assert_unknown(int result, int expected, const char *description) {
+ATT_API unsigned int att_assert_unknown(void* result, void* expected, const char *description) {
     int test = att_assert("default", result == expected, description);
 
     if(!test) {
-        ATT_ERROR_MESSAGE(result, "%d", expected);
+        ATT_ERROR_MESSAGE(result, "%p", expected);
     }
 
     return test;

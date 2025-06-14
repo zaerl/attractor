@@ -1,6 +1,10 @@
 #include "../attractor.h"
 #include <stdio.h>
 
+struct unknown_struct {
+    int unknown;
+};
+
 void *test_unknowns(void *arg) {
     typedef int num;
     num a = 1;
@@ -11,6 +15,10 @@ void *test_unknowns(void *arg) {
     float_num c = 1.0;
     float_num d = 1.0;
     ATT_ASSERT(c, d, "Unknown typedef float num c = d")
+
+    struct unknown_struct sa;
+
+    ATT_ASSERT(&sa, &sa, "Unknown struct sa = sa")
 
     return NULL;
 }

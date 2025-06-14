@@ -52,10 +52,10 @@ const types = [
         alt_formats: [ 'd' ]
     }, {
         name: 'default',
-        alt_name: 'int',
-        signed: true,
+        alt_name: 'void*',
+        ptr: true,
         formats: [ 'unknown' ],
-        alt_formats: [ 'd' ]
+        alt_formats: [ 'p' ]
     }
 ];
 
@@ -94,7 +94,7 @@ function fn_name(type_info, unsigned, is_const) {
     const format = format_name(type_info, unsigned);
     let pointer = '';
 
-    if(type_info.name.endsWith('*')) {
+    if(type_info.name.endsWith('*') && format !== 'unknown') {
         pointer = is_const ? '_cp' : '_p';
     }
 
@@ -158,7 +158,7 @@ for(const type_info of types) {
     const name = type_info.name;
 
     if(type_info.ptr) {
-        type_info.name = name + '*';
+        type_info.name = name === 'default' ? name : name + '*';
         decls.push(fn_decl(type_info, false, false));
         generics.push(generic_decl(type_info, false, false));
         contents.push(fn_content(type_info, false, false));
