@@ -28,6 +28,7 @@ static unsigned int att_verbose = ATT_VERBOSE;
 static unsigned int att_show_error = ATT_SHOW_ERROR;
 static unsigned int att_columns = 80;
 static int att_show_colors = 0;
+static att_generic_callback att_callback = NULL;
 
 unsigned int att_get_valid_tests(void) {
     return att_valid_tests;
@@ -43,6 +44,10 @@ void att_set_verbose(unsigned int verbose) {
 
 void att_set_show_error(unsigned int show_error) {
     att_show_error = show_error;
+}
+
+void att_set_generic_callback(att_generic_callback callback) {
+    att_callback = callback;
 }
 
 int att_assert(const char *type, int test, const char *description);
@@ -218,7 +223,7 @@ ATT_API unsigned int att_assert_b(_Bool result, _Bool expected, const char *desc
 }
 
 ATT_API unsigned int att_assert_unknown(void* result, void* expected, const char *description) {
-    int test = att_assert("default", result == expected, description);
+    int test = att_assert(att_callback ? "callback" : "default", att_callback ? att_callback(result, expected, description) : (result == expected), description);
 
     if(!test) {
         ATT_ERROR_MESSAGE(result, "%p", expected);

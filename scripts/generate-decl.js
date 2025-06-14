@@ -1,4 +1,4 @@
-// This is a script used to generate functions declarations for the attractor library
+// This is a script used to generate functions declarations for the Attractor Library
 import { readFileSync, writeFileSync } from 'fs';
 
 const types = [
@@ -116,14 +116,18 @@ function fn_content(type_info, unsigned, is_const) {
     let comparison = 'result == expected';
     const format = format_name(type_info, unsigned, true);
     let s_format = '"%' + (type_info.name.endsWith('*') ? 'p' : format) + '"';
+    let type_name = `"${type_info.name}"`;
 
-    if(type_info.name === 'char*') {
+    if(type_info.name === 'default') {
+        comparison = `att_callback ? att_callback(result, expected, description) : (${comparison})`;
+        type_name = `att_callback ? "callback" : "default"`;
+    } else if(type_info.name === 'char*') {
         comparison = '((result == expected) || ((result && expected) ? strcmp(result, expected) == 0 : 0))';
         s_format = 'ATT_STRING_AS_POINTERS == 1 ? "%p" : "\\"%s\\""';
     }
 
     return fn_decl(type_info, unsigned, is_const) + ` {
-    int test = att_assert("${type_info.name}", ${comparison}, description);
+    int test = att_assert(${type_name}, ${comparison}, description);
 
     if(!test) {
         ATT_ERROR_MESSAGE(result, ${s_format}, expected);

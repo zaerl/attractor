@@ -113,8 +113,42 @@ Tests valid/run: 2/3
 
 ## Advance usage
 
+Check [tests/test.c](tests/test.c) for an advanced example.
+
+### Strings
+
 Attractor treats strings as strings. So the content of the string is output to the terminal as it is
 in case of error. By defining `#define ATT_STRING_AS_POINTERS 1`, it will simply output the pointer
 address.
 
-Check [tests/test.c](tests/test.c) for an advanced example that uses multi-threaded tests.
+### Custom callback
+
+You can register a custom function to be called when a type is not one of the list.
+
+```c
+#include <attractor.h>
+
+typedef struct unknown_struct {
+    int unknown;
+} unknown_struct;
+
+int assert_unknown(void* result, void* expected, const char *description) {
+    if(!result || !expected) {
+        return 0;
+    }
+
+    return ((unknown_struct*)result)->unknown == ((unknown_struct*)expected)->unknown;
+}
+
+void test_unknown_callback() {
+    unknown_struct sa;
+    unknown_struct sb;
+
+    sa.unknown = 1;
+    sb.unknown = 1;
+
+    att_set_generic_callback(&assert_unknown);
+    ATT_ASSERT(&sa, &sb, "Unknown struct sa = sb")
+    att_set_generic_callback(NULL);
+}
+```

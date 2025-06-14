@@ -82,6 +82,10 @@ unsigned int att_get_total_tests(void);
 void att_set_verbose(unsigned int verbose);
 void att_set_show_error(unsigned int show_error);
 
+typedef int (*att_generic_callback)(void*, void*, const char*);
+
+void att_set_generic_callback(att_generic_callback callback);
+
 #ifdef __cplusplus
 }
 #endif
