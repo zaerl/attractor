@@ -1,7 +1,7 @@
 /**
- * 2024-02-16
+ * 2025-06-14
  *
- * The attractor unit test library
+ * The Attractor Unit Test library
  *
  * Usage:
  *
@@ -40,6 +40,7 @@ extern "C" {
     char: att_assert_c, \
     unsigned char: att_assert_u_c, \
     char*: att_assert_p_c, \
+    const char*: att_assert_cp_c, \
     short: att_assert_hd, \
     unsigned short: att_assert_u_hu, \
     int: att_assert_d, \
@@ -59,6 +60,7 @@ extern "C" {
 ATT_API unsigned int att_assert_c(char result, char expected, const char *description);
 ATT_API unsigned int att_assert_u_c(unsigned char result, unsigned char expected, const char *description);
 ATT_API unsigned int att_assert_p_c(char* result, char* expected, const char *description);
+ATT_API unsigned int att_assert_cp_c(const char* result, const char* expected, const char *description);
 ATT_API unsigned int att_assert_hd(short result, short expected, const char *description);
 ATT_API unsigned int att_assert_u_hu(unsigned short result, unsigned short expected, const char *description);
 ATT_API unsigned int att_assert_d(int result, int expected, const char *description);

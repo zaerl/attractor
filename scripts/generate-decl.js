@@ -7,6 +7,7 @@ const types = [
         signed: true,
         unsigned: true,
         ptr: true,
+        const_ptr: true,
         formats: [ 'c', 'c' ]
     }, {
         name: 'short',
@@ -89,15 +90,20 @@ function format_name(type_info, unsigned, alt) {
     return type_info.formats[index];
 }
 
-function fn_name(type_info, unsigned) {
+function fn_name(type_info, unsigned, is_const) {
     const format = format_name(type_info, unsigned);
+    let pointer = '';
 
-    return `att_assert${unsigned ? '_u' : ''}${type_info.name.endsWith('*') ? '_p' : ''}_${format}`;
+    if(type_info.name.endsWith('*')) {
+        pointer = is_const ? '_cp' : '_p';
+    }
+
+    return `att_assert${unsigned ? '_u' : ''}${pointer}_${format}`;
 }
 
-function fn_decl(type_info, unsigned) {
+function fn_decl(type_info, unsigned, is_const) {
     let type = type_name(type_info, unsigned);
-    const fn = fn_name(type_info, unsigned);
+    const fn = fn_name(type_info, unsigned, is_const);
 
     if(type_info.alt_name) {
         type = type_info.alt_name;
@@ -106,7 +112,7 @@ function fn_decl(type_info, unsigned) {
     return `\nATT_API unsigned int ${fn}(${type} result, ${type} expected, const char *description)`;
 }
 
-function fn_content(type_info, unsigned) {
+function fn_content(type_info, unsigned, is_const) {
     let comparison = 'result == expected';
     const format = format_name(type_info, unsigned, true);
     let s_format = '"%' + (type_info.name.endsWith('*') ? 'p' : format) + '"';
@@ -116,7 +122,7 @@ function fn_content(type_info, unsigned) {
         s_format = 'ATT_STRING_AS_POINTERS == 1 ? "%p" : "\\"%s\\""';
     }
 
-    return fn_decl(type_info, unsigned) + ` {
+    return fn_decl(type_info, unsigned, is_const) + ` {
     int test = att_assert("${type_info.name}", ${comparison}, description);
 
     if(!test) {
@@ -127,9 +133,9 @@ function fn_content(type_info, unsigned) {
 }`;
 }
 
-function generic_decl(type_info, unsigned) {
+function generic_decl(type_info, unsigned, is_const) {
     const type = type_name(type_info, unsigned);
-    const fn = fn_name(type_info, unsigned);
+    const fn = fn_name(type_info, unsigned, is_const);
 
     return `${type}: ${fn}`;
 }
@@ -138,22 +144,32 @@ const generate_c = process.argv.length === 3 && process.argv[2] === 'c';
 
 for(const type_info of types) {
     if(type_info.signed) {
-        decls.push(fn_decl(type_info, false));
-        generics.push(generic_decl(type_info, false));
-        contents.push(fn_content(type_info, false));
+        decls.push(fn_decl(type_info, false, false));
+        generics.push(generic_decl(type_info, false, false));
+        contents.push(fn_content(type_info, false, false));
     }
 
     if(type_info.unsigned) {
-        decls.push(fn_decl(type_info, true));
-        generics.push(generic_decl(type_info, true));
-        contents.push(fn_content(type_info, true));
+        decls.push(fn_decl(type_info, true, false));
+        generics.push(generic_decl(type_info, true, false));
+        contents.push(fn_content(type_info, true, false));
     }
 
+    const name = type_info.name;
+
     if(type_info.ptr) {
-        type_info.name = type_info.name + '*';
-        decls.push(fn_decl(type_info, false));
-        generics.push(generic_decl(type_info, false));
-        contents.push(fn_content(type_info, false));
+        type_info.name = name + '*';
+        decls.push(fn_decl(type_info, false, false));
+        generics.push(generic_decl(type_info, false, false));
+        contents.push(fn_content(type_info, false, false));
+    }
+
+    if(type_info.const_ptr) {
+        type_info.name = 'const ' + name + '*';
+
+        decls.push(fn_decl(type_info, false, true));
+        generics.push(generic_decl(type_info, false, true));
+        contents.push(fn_content(type_info, false, true));
     }
 }
 

@@ -1,6 +1,8 @@
 
 /**
- * The attractor unit test library
+ * 2025-06-14
+ *
+ * The Attractor Unit Test library
  */
 
 #include "attractor.h"
@@ -70,6 +72,16 @@ ATT_API unsigned int att_assert_p_c(char* result, char* expected, const char *de
 
     if(!test) {
         ATT_ERROR_MESSAGE(result, ATT_STRING_AS_POINTERS == 1 ? "%p" : "\"%s\"", expected);
+    }
+
+    return test;
+}
+
+ATT_API unsigned int att_assert_cp_c(const char* result, const char* expected, const char *description) {
+    int test = att_assert("const char*", result == expected, description);
+
+    if(!test) {
+        ATT_ERROR_MESSAGE(result, "%p", expected);
     }
 
     return test;
