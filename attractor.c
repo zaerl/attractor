@@ -29,6 +29,7 @@ static unsigned int att_show_error = ATT_SHOW_ERROR;
 static unsigned int att_columns = 80;
 static int att_show_colors = 0;
 static att_generic_callback att_callback = NULL;
+static att_test_callback att_t_callback = NULL;
 
 unsigned int att_get_valid_tests(void) {
     return att_valid_tests;
@@ -48,6 +49,10 @@ void att_set_show_error(unsigned int show_error) {
 
 void att_set_generic_callback(att_generic_callback callback) {
     att_callback = callback;
+}
+
+void att_set_test_callback(att_test_callback callback) {
+    att_t_callback = callback;
 }
 
 int att_assert(const char *type, int test, const char *description);
@@ -254,6 +259,10 @@ int att_assert(const char *format, int test, const char *description) {
 
     if(test) {
         ++att_valid_tests;
+    }
+
+    if(att_t_callback) {
+        att_t_callback(test, description);
     }
 
     if(att_verbose == 0) {

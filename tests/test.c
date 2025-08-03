@@ -13,6 +13,7 @@
 #define DECLARE_TEST(NAME) void *test_##NAME(void *arg);
 
 DECLARE_TEST(chars)
+DECLARE_TEST(callback)
 DECLARE_TEST(floats)
 DECLARE_TEST(integers)
 DECLARE_TEST(strings)
@@ -31,6 +32,7 @@ int main(int argc, const char *argv[]) {
         pthread_create(&thread_##NAME, NULL, test_##NAME, NULL); \
         pthread_join(thread_##NAME, NULL);
 
+    RUN_TEST(callback)
     RUN_TEST(chars)
     RUN_TEST(floats)
     RUN_TEST(integers)

@@ -41,9 +41,13 @@ In case of unknown type the input is assumed to be `void*`.
 
 1. `ATT_ASSERT(value, expected, description)` you pass the value to test, the expected one and a
    description of the test.
-2. `unsigned int att_get_valid_tests(void)` return the count of valid tests.
-3. `unsigned int att_get_total_tests(void)` return the count of run tests.
-4. `void att_set_verbose(unsigned int verbose)` set the verbose.
+2. `void att_set_verbose(unsigned int verbose)` set verbosity.
+3. `void att_set_show_error(unsigned int show_error)` set to show errors.
+4. `void att_set_generic_callback(att_generic_callback callback)` set a callback to run for generic
+   tests
+5. `void att_set_test_callback(att_test_callback callback)` set a callback to call for all tests.
+6. `unsigned int att_get_valid_tests(void)` return the count of valid tests.
+7. `unsigned int att_get_total_tests(void)` return the count of run tests.
 
 ## Examples
 
