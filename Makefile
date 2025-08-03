@@ -19,7 +19,7 @@ TEST_EXECUTABLE = $(BIN_DIR)/test
 all: generate $(TEST_EXECUTABLE)
 
 generate:
-	node scripts/generate-decl.js && node scripts/generate-decl.js c
+	node scripts/generate-decl.mjs && node scripts/generate-decl.mjs c
 
 $(BIN_DIR)/%.o: $(TEST_DIR)/%.c
 	$(CC) $(CFLAGS) $(INCLUDES) -c $< -o $@
