@@ -133,6 +133,10 @@ function fn_content(type_info, unsigned, is_const) {
         ATT_ERROR_MESSAGE(result, ${s_format}, expected);
     }
 
+    if(att_t_callback) {
+        att_t_callback(test, description);
+    }
+
     return test;
 }`;
 }
