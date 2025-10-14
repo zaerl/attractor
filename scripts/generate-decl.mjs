@@ -116,18 +116,18 @@ function fn_content(type_info, unsigned, is_const) {
     let comparison = 'result == expected';
     const format = format_name(type_info, unsigned, true);
     let s_format = '"%' + (type_info.name.endsWith('*') ? 'p' : format) + '"';
-    let type_name = `"${type_info.name}"`;
+    let type = '"' + type_name(type_info, unsigned) + '"';
 
     if(type_info.name === 'default') {
         comparison = `att_callback ? att_callback(result, expected, description) : (${comparison})`;
-        type_name = `att_callback ? "callback" : "default"`;
+        type = `att_callback ? "callback" : "default"`;
     } else if(type_info.name === 'char*' || type_info.name === 'const char*') {
         comparison = '((result == expected) || ((result && expected) ? strcmp(result, expected) == 0 : 0))';
         s_format = 'ATT_STRING_AS_POINTERS == 1 ? "%p" : "\\"%s\\""';
     }
 
     return fn_decl(type_info, unsigned, is_const) + ` {
-    int test = att_assert(${type_name}, ${comparison}, description);
+    int test = att_assert(${type}, ${comparison}, description);
 
     if(!test) {
         ATT_ERROR_MESSAGE(result, ${s_format}, expected);
@@ -191,7 +191,7 @@ if(generate_c) {
     writeFileSync('./attractor.c', file_content);
 } else {
     let file_content = readFileSync('./attractor.h', 'utf-8');
-    let substitution = "\n#define ATT_ASSERT(VALUE, EXPECTED, MESSAGE) _Generic((0, VALUE), \\\n    " +
+    let substitution = "\n#define ATT_ASSERT(VALUE, EXPECTED, MESSAGE) _Generic(VALUE, \\\n    " +
         generics.join(', \\\n    ') +
         " \\\n)(VALUE, EXPECTED, MESSAGE);\n" +
         decls.join(';') + ";";

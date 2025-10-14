@@ -69,7 +69,7 @@ ATT_API unsigned int att_assert_c(char result, char expected, const char *descri
 }
 
 ATT_API unsigned int att_assert_u_c(unsigned char result, unsigned char expected, const char *description) {
-    int test = att_assert("char", result == expected, description);
+    int test = att_assert("unsigned char", result == expected, description);
 
     if(!test) {
         ATT_ERROR_MESSAGE(result, "%c", expected);
@@ -125,7 +125,7 @@ ATT_API unsigned int att_assert_hd(short result, short expected, const char *des
 }
 
 ATT_API unsigned int att_assert_u_hu(unsigned short result, unsigned short expected, const char *description) {
-    int test = att_assert("short", result == expected, description);
+    int test = att_assert("unsigned short", result == expected, description);
 
     if(!test) {
         ATT_ERROR_MESSAGE(result, "%hu", expected);
@@ -153,7 +153,7 @@ ATT_API unsigned int att_assert_d(int result, int expected, const char *descript
 }
 
 ATT_API unsigned int att_assert_u_u(unsigned int result, unsigned int expected, const char *description) {
-    int test = att_assert("int", result == expected, description);
+    int test = att_assert("unsigned int", result == expected, description);
 
     if(!test) {
         ATT_ERROR_MESSAGE(result, "%u", expected);
@@ -181,7 +181,7 @@ ATT_API unsigned int att_assert_ld(long result, long expected, const char *descr
 }
 
 ATT_API unsigned int att_assert_u_lu(unsigned long result, unsigned long expected, const char *description) {
-    int test = att_assert("long", result == expected, description);
+    int test = att_assert("unsigned long", result == expected, description);
 
     if(!test) {
         ATT_ERROR_MESSAGE(result, "%lu", expected);
@@ -209,7 +209,7 @@ ATT_API unsigned int att_assert_lld(long long result, long long expected, const 
 }
 
 ATT_API unsigned int att_assert_u_llu(unsigned long long result, unsigned long long expected, const char *description) {
-    int test = att_assert("long long", result == expected, description);
+    int test = att_assert("unsigned long long", result == expected, description);
 
     if(!test) {
         ATT_ERROR_MESSAGE(result, "%llu", expected);
