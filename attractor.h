@@ -16,7 +16,12 @@
 #ifndef ATT_TEST_H
 #define ATT_TEST_H
 
+#include <stdbool.h>
+
 #ifdef __cplusplus
+#include <type_traits>
+#include <string>
+
 extern "C" {
 #endif
 
@@ -93,6 +98,78 @@ typedef int (*att_test_callback)(int, const char*);
 void att_set_test_callback(att_test_callback callback);
 
 #ifdef __cplusplus
+}
+#endif
+
+#ifdef __cplusplus
+// C++ template function for att_assert to handle type deduction properly
+template<typename T1, typename T2>
+inline unsigned int att_assert_cpp(T1 result, T2 expected, const char *description) {
+    // Convert both to a common type for comparison
+    using common_type = std::common_type_t<T1, T2>;
+    common_type converted_result = static_cast<common_type>(result);
+    common_type converted_expected = static_cast<common_type>(expected);
+
+    // Handle different common types
+    if constexpr (std::is_same_v<common_type, char>) {
+        return att_assert_c(converted_result, converted_expected, description);
+    } else if constexpr (std::is_same_v<common_type, unsigned char>) {
+        return att_assert_u_c(converted_result, converted_expected, description);
+    } else if constexpr (std::is_same_v<common_type, short>) {
+        return att_assert_hd(converted_result, converted_expected, description);
+    } else if constexpr (std::is_same_v<common_type, unsigned short>) {
+        return att_assert_u_hu(converted_result, converted_expected, description);
+    } else if constexpr (std::is_same_v<common_type, int>) {
+        return att_assert_d(converted_result, converted_expected, description);
+    } else if constexpr (std::is_same_v<common_type, unsigned int>) {
+        return att_assert_u_u(converted_result, converted_expected, description);
+    } else if constexpr (std::is_same_v<common_type, long>) {
+        return att_assert_ld(converted_result, converted_expected, description);
+    } else if constexpr (std::is_same_v<common_type, unsigned long>) {
+        return att_assert_u_lu(converted_result, converted_expected, description);
+    } else if constexpr (std::is_same_v<common_type, long long>) {
+        return att_assert_lld(converted_result, converted_expected, description);
+    } else if constexpr (std::is_same_v<common_type, unsigned long long>) {
+        return att_assert_u_llu(converted_result, converted_expected, description);
+    } else if constexpr (std::is_same_v<common_type, float>) {
+        return att_assert_f(converted_result, converted_expected, description);
+    } else if constexpr (std::is_same_v<common_type, double>) {
+        return att_assert_lf(converted_result, converted_expected, description);
+    } else if constexpr (std::is_same_v<common_type, long double>) {
+        return att_assert_Lf(converted_result, converted_expected, description);
+    } else if constexpr (std::is_same_v<common_type, bool>) {
+        return att_assert_b(converted_result, converted_expected, description);
+    } else if constexpr (std::is_same_v<common_type, std::string>) {
+        return att_assert_cp_c(result.c_str(), expected.c_str(), description);
+    } else {
+        return att_assert_unknown((void*)&converted_result, (void*)&converted_expected, description);
+    }
+}
+
+// Overloads for pointer types (can't use template easily for these)
+inline unsigned int att_assert_cpp(char* result, char* expected, const char *description) {
+    return att_assert_p_c(result, expected, description);
+}
+
+inline unsigned int att_assert_cpp(const char* result, const char* expected, const char *description) {
+    return att_assert_cp_c(result, expected, description);
+}
+
+inline unsigned int att_assert_cpp(void* result, void* expected, const char *description) {
+    return att_assert_p_p(result, expected, description);
+}
+
+// Special overloads for NULL pointer comparisons
+inline unsigned int att_assert_cpp(const char* result, long expected, const char *description) {
+    return att_assert_cp_c(result, (const char*)expected, description);
+}
+
+inline unsigned int att_assert_cpp(char* result, long expected, const char *description) {
+    return att_assert_p_c(result, (char*)expected, description);
+}
+
+inline unsigned int att_assert_cpp(void* result, long expected, const char *description) {
+    return att_assert_p_p(result, (void*)expected, description);
 }
 #endif
 
