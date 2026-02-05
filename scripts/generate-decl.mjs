@@ -117,6 +117,29 @@ function fn_content(type_info, unsigned, is_const) {
     const format = format_name(type_info, unsigned, true);
     let s_format = '"%' + (type_info.name.endsWith('*') ? 'p' : format) + '"';
     let type = '"' + type_name(type_info, unsigned) + '"';
+    let error_message = '';
+
+    if(s_format === '"%c"') {
+        error_message = `char *format_1;\n        char *format_2;
+
+        if(expected < 32 || expected == 127) {
+            format_1 = "\\\\x%02X";
+        } else {
+            format_1 = "%c";
+        }
+
+        if(result < 32 || result == 127) {
+            format_2 = "\\\\x%02X";
+        } else {
+            format_2 = "%c";
+        }
+
+        ATT_ERROR_MESSAGE(result, format_1, format_2, expected);`;
+    } else if(s_format === '"%p"' && format_name(type_info, unsigned) === 'c') {
+        error_message = `ATT_ERROR_MESSAGE(result, ATT_STRING_AS_POINTERS == 1 ? "%p" : "\\"%s\\"", ATT_STRING_AS_POINTERS == 1 ? "%p" : "\\"%s\\"", expected);`
+    }else {
+        error_message = `ATT_ERROR_MESSAGE(result, ${s_format}, ${s_format}, expected);`;
+    }
 
     if(type_info.name === 'default') {
         comparison = `att_callback ? att_callback(result, expected, description) : (${comparison})`;
@@ -130,7 +153,7 @@ function fn_content(type_info, unsigned, is_const) {
     int test = att_assert(${type}, ${comparison}, description);
 
     if(!test) {
-        ATT_ERROR_MESSAGE(result, ${s_format}, expected);
+        ${error_message}
     }
 
     if(att_t_callback) {
@@ -191,9 +214,11 @@ if(generate_c) {
     writeFileSync('./attractor.c', file_content);
 } else {
     let file_content = readFileSync('./attractor.h', 'utf-8');
-    let substitution = "\n#define ATT_ASSERT(VALUE, EXPECTED, MESSAGE) _Generic(VALUE, \\\n    " +
+    let substitution = "\n#ifndef __cplusplus\n#define ATT_ASSERT(VALUE, EXPECTED, MESSAGE) _Generic(VALUE, \\\n    " +
         generics.join(', \\\n    ') +
-        " \\\n)(VALUE, EXPECTED, MESSAGE);\n" +
+        " \\\n)(VALUE, EXPECTED, MESSAGE);\n#else\n" +
+        "#define ATT_ASSERT(VALUE, EXPECTED, MESSAGE) att_assert_cpp(VALUE, EXPECTED, MESSAGE);\n" +
+        "#endif\n" +
         decls.join(';') + ";";
 
     file_content = substitute_text(
