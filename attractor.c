@@ -67,8 +67,8 @@ ATT_API unsigned int att_assert_c(char result, char expected, const char *descri
     int test = att_assert("char", result == expected, description);
 
     if(!test) {
-        char *format_1;
-        char *format_2;
+        const char *format_1;
+        const char *format_2;
 
         if(expected < 32 || expected == 127) {
             format_1 = "\\x%02X";
@@ -96,8 +96,8 @@ ATT_API unsigned int att_assert_u_c(unsigned char result, unsigned char expected
     int test = att_assert("unsigned char", result == expected, description);
 
     if(!test) {
-        char *format_1;
-        char *format_2;
+        const char *format_1;
+        const char *format_2;
 
         if(expected < 32 || expected == 127) {
             format_1 = "\\x%02X";

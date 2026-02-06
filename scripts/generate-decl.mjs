@@ -120,7 +120,7 @@ function fn_content(type_info, unsigned, is_const) {
     let error_message = '';
 
     if(s_format === '"%c"') {
-        error_message = `char *format_1;\n        char *format_2;
+        error_message = `const char *format_1;\n        const char *format_2;
 
         if(expected < 32 || expected == 127) {
             format_1 = "\\\\x%02X";
