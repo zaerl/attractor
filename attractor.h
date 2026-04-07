@@ -46,8 +46,13 @@ extern "C" {
 #define ATT_STRING_AS_POINTERS 0
 #endif
 
+#ifndef ATT_CUSTOM_TYPES
+#define ATT_CUSTOM_TYPES
+#endif
+
 #ifndef __cplusplus
 #define ATT_ASSERT(VALUE, EXPECTED, MESSAGE) _Generic(VALUE, \
+    ATT_CUSTOM_TYPES \
     char: att_assert_c, \
     unsigned char: att_assert_u_c, \
     char*: att_assert_p_c, \

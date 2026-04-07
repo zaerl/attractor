@@ -14,6 +14,7 @@
 
 DECLARE_TEST(chars)
 DECLARE_TEST(callback)
+DECLARE_TEST(custom)
 DECLARE_TEST(floats)
 DECLARE_TEST(integers)
 DECLARE_TEST(strings)
@@ -34,6 +35,7 @@ int main(int argc, const char *argv[]) {
 
     RUN_TEST(callback)
     RUN_TEST(chars)
+    RUN_TEST(custom)
     RUN_TEST(floats)
     RUN_TEST(integers)
     RUN_TEST(strings)
