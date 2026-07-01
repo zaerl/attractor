@@ -1,4 +1,11 @@
+/**
+ * The Attractor Unit Test library
+ *
+ * This file is distributed under the MIT License. See LICENSE for details.
+ */
+
 #include "../attractor.h"
+
 #include <stdio.h>
 
 int int_0(int result) {
@@ -17,7 +24,7 @@ void *test_integers(void *arg) {
     ATT_ASSERT(1l, 1l, "1l = 1l")
     ATT_ASSERT(1ul, 1ul, "1ul = 1ul")
     ATT_ASSERT(1ll, 1ll, "1ll = 1ll")
-    ATT_ASSERT(1ll, 1ll, "1ull = 1ull")
+    ATT_ASSERT(1ull, 1ull, "1ull = 1ull")
 
     return NULL;
 }
