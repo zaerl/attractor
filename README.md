@@ -122,6 +122,12 @@ Tests valid/run: 2/3
 
 Check [tests/test.c](tests/test.c) for an advanced example.
 
+### Threading
+
+The valid/total test counters are atomic, so `ATT_ASSERT` can be used from several threads at once
+without losing updates. `att_get_valid_tests()` and `att_get_total_tests()` therefore report the
+exact number of assertions run, even when tests execute concurrently.
+
 ### Strings
 
 Attractor treats strings as strings. So the content of the string is output to the terminal as it is

@@ -20,6 +20,14 @@
     #include <unistd.h>
 #endif
 
+#ifdef __cplusplus
+    #include <atomic>
+    typedef std::atomic<unsigned int> att_atomic_uint;
+#else
+    #include <stdatomic.h>
+    typedef atomic_uint att_atomic_uint;
+#endif
+
 #define ATT_ERROR_MESSAGE(RESULT, FORMAT_1, FORMAT_2, EXPECTED) \
 if(att_verbose >= 1 && att_show_error) { \
     printf(att_show_colors ? "\x1B[90m%s:%u:\x1B[0m " : "%s:%u: ", file, line); \
@@ -30,8 +38,8 @@ if(att_verbose >= 1 && att_show_error) { \
     fputs(att_show_colors ? "\x1B[0m\n\n" : "\n\n", stdout); \
 }
 
-static unsigned int att_valid_tests = 0;
-static unsigned int att_total_tests = 0;
+static att_atomic_uint att_valid_tests = 0;
+static att_atomic_uint att_total_tests = 0;
 static unsigned int att_verbose = ATT_VERBOSE;
 static unsigned int att_show_error = ATT_SHOW_ERROR;
 static int att_show_colors = 0;
@@ -356,10 +364,9 @@ ATT_API unsigned int att_assert_unknown(void* result, void* expected, const char
 }
 
 int att_assert(const char *format, int test, const char *description) {
-    ++att_total_tests;
-
-    // Initialize the library
-    if(att_total_tests == 1) {
+    // Initialize the library on the first assertion. Post-increment returns the
+    // previous value atomically, so exactly one thread observes zero here.
+    if(att_total_tests++ == 0) {
         if(isatty(STDOUT_FILENO)) {
             const char *no_color = getenv("NO_COLOR");
 
