@@ -1,4 +1,9 @@
-// This is a script used to generate functions declarations for the Attractor Library
+/**
+ * The Attractor Unit Test library
+ *
+ * This file is distributed under the MIT License. See LICENSE for details.
+ */
+
 import { readFileSync, writeFileSync } from 'fs';
 
 const types = [

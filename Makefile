@@ -1,5 +1,7 @@
-# This is the Makefile used to generate the attractor.h and attractor.c
-# files and run tests. Please ignore it.
+# The Attractor Unit Test library
+#
+# This file is distributed under the MIT License. See LICENSE for details.
+
 CC = gcc
 CFLAGS = -Wall -Wextra -Wno-unused-parameter -std=c11
 CXX = g++

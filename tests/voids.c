@@ -1,4 +1,10 @@
-#include "../attractor.h"
+/**
+ * The Attractor Unit Test library
+ *
+ * This file is distributed under the MIT License. See LICENSE for details.
+ */
+
+ #include "../attractor.h"
 #include <stdio.h>
 
 void *test_voids(void *arg) {

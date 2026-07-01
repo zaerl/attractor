@@ -1,7 +1,7 @@
 /**
- * 2026-04-07
- *
  * The Attractor Unit Test library
+ *
+ * This file is distributed under the MIT License. See LICENSE for details.
  *
  * Usage:
  *
