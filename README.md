@@ -86,34 +86,45 @@ Tests valid/run: 3/3
 With `verbose = 2` the code output:
 
 ```
-[%d] one == one:                                                              OK
-[%f] 2.0 == 2.0:                                                              OK
-[%lld] long long 3 == long long 3:                                            OK
+OK [int] one == one
+OK [float] 2.0 == 2.0
+OK [long long] long long 3 == long long 3
 
 Tests valid/run: 3/3
 ```
 
 ## Examples with errors
 
-If we change `var_to_test_2` in `1.0` this is the output with `verbose = 1`. Each failure is
-prefixed with the source `file:line` of the failing `ATT_ASSERT`:
+Failures are reported independently of the verbosity level: they are shown whenever `att_show_error`
+is set (the default). Set `att_set_show_error(0)` if you really want complete silence.
+
+If we change `var_to_test_2` in `1.0` this is the output with `verbose = 1`. Each failure is prefixed
+with the source `file:line` and, at `verbose` 0 or 1, the test description, so it is self-contained:
 
 ```c
 .F
-test.c:61: Expected 2.000000, got 3.000000
+test.c:7: 2.0 == 2.0: Expected 2.000000, got 1.000000
 
 .
 Tests valid/run: 2/3
 ```
 
-And with `verbose = 2`:
+With `verbose = 0` only the failures are printed (no `.` for the passing tests):
 
 ```
-[%d] one == one:                                                              OK
-[%f] 2.0 == 2.0:                                                            FAIL
-test.c:61: Expected 2.000000, got 3.000000
+test.c:7: 2.0 == 2.0: Expected 2.000000, got 1.000000
 
-[%lld] long long 3 == long long 3:                                            OK
+Tests valid/run: 2/3
+```
+
+And with `verbose = 2` the description is already on the result line, so it is not repeated:
+
+```
+OK [int] one == one
+NO [float] 2.0 == 2.0
+tests/char.c:25: Expected 2.000000, got 1.000000
+
+OK [long long] long long 3 == long long 3
 
 Tests valid/run: 2/3
 ```
