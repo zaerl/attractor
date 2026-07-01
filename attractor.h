@@ -42,6 +42,12 @@ extern "C" {
 #define ATT_SHOW_ERROR 1
 #endif
 
+// Tolerance for float, double and long double comparisons. Defaults to 0 (exact
+// equality). Define a small value (e.g. 1e-6) to compare within an epsilon.
+#ifndef ATT_FLOAT_EPSILON
+#define ATT_FLOAT_EPSILON 0
+#endif
+
 #ifndef ATT_STRING_AS_POINTERS
 #define ATT_STRING_AS_POINTERS 0
 #endif
@@ -100,6 +106,11 @@ unsigned int att_get_total_tests(void);
 
 void att_set_verbose(unsigned int verbose);
 void att_set_show_error(unsigned int show_error);
+
+// Tolerance used for float, double and long double comparisons. Initialized to
+// ATT_FLOAT_EPSILON (0 by default, i.e. exact equality) and overridable at runtime.
+long double att_get_float_epsilon(void);
+void att_set_float_epsilon(long double epsilon);
 
 typedef int (*att_generic_callback)(void*, void*, const char*);
 

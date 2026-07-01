@@ -35,6 +35,7 @@ static unsigned int att_total_tests = 0;
 static unsigned int att_verbose = ATT_VERBOSE;
 static unsigned int att_show_error = ATT_SHOW_ERROR;
 static int att_show_colors = 0;
+static long double att_float_epsilon = ATT_FLOAT_EPSILON;
 static att_generic_callback att_callback = NULL;
 static att_test_callback att_t_callback = NULL;
 
@@ -52,6 +53,14 @@ void att_set_verbose(unsigned int verbose) {
 
 void att_set_show_error(unsigned int show_error) {
     att_show_error = show_error;
+}
+
+long double att_get_float_epsilon(void) {
+    return att_float_epsilon;
+}
+
+void att_set_float_epsilon(long double epsilon) {
+    att_float_epsilon = epsilon;
 }
 
 void att_set_generic_callback(att_generic_callback callback) {
@@ -263,7 +272,7 @@ ATT_API unsigned int att_assert_u_llu(unsigned long long result, unsigned long l
 }
 
 ATT_API unsigned int att_assert_f(float result, float expected, const char *description, const char *file, unsigned int line) {
-    int test = att_assert("float", result == expected, description);
+    int test = att_assert("float", (result == expected) || ((result > expected ? result - expected : expected - result) <= att_float_epsilon), description);
 
     if(!test) {
         ATT_ERROR_MESSAGE(result, "%f", "%f", expected);
@@ -277,7 +286,7 @@ ATT_API unsigned int att_assert_f(float result, float expected, const char *desc
 }
 
 ATT_API unsigned int att_assert_lf(double result, double expected, const char *description, const char *file, unsigned int line) {
-    int test = att_assert("double", result == expected, description);
+    int test = att_assert("double", (result == expected) || ((result > expected ? result - expected : expected - result) <= att_float_epsilon), description);
 
     if(!test) {
         ATT_ERROR_MESSAGE(result, "%lf", "%lf", expected);
@@ -291,7 +300,7 @@ ATT_API unsigned int att_assert_lf(double result, double expected, const char *d
 }
 
 ATT_API unsigned int att_assert_Lf(long double result, long double expected, const char *description, const char *file, unsigned int line) {
-    int test = att_assert("long double", result == expected, description);
+    int test = att_assert("long double", (result == expected) || ((result > expected ? result - expected : expected - result) <= att_float_epsilon), description);
 
     if(!test) {
         ATT_ERROR_MESSAGE(result, "%Lf", "%Lf", expected);

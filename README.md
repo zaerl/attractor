@@ -48,6 +48,8 @@ In case of unknown type the input is assumed to be `void*`.
 5. `void att_set_test_callback(att_test_callback callback)` set a callback to call for all tests.
 6. `unsigned int att_get_valid_tests(void)` return the count of valid tests.
 7. `unsigned int att_get_total_tests(void)` return the count of run tests.
+8. `void att_set_float_epsilon(long double epsilon)` set the tolerance for float comparisons.
+9. `long double att_get_float_epsilon(void)` return the current float comparison tolerance.
 
 ## Examples
 
@@ -125,6 +127,28 @@ Check [tests/test.c](tests/test.c) for an advanced example.
 Attractor treats strings as strings. So the content of the string is output to the terminal as it is
 in case of error. By defining `#define ATT_STRING_AS_POINTERS 1`, it will simply output the pointer
 address.
+
+### Floats
+
+`float`, `double` and `long double` are compared for exact equality by default. Because computed
+floating point results are rarely bit-exact, you can define a tolerance. Values are then considered
+equal when their absolute difference is within `ATT_FLOAT_EPSILON`:
+
+```c
+// 1e-6 is usually enough
+#define ATT_FLOAT_EPSILON 1e-6
+
+ATT_ASSERT(0.1 + 0.2, 0.3, "sum within epsilon")
+```
+
+The default is `0` (exact equality). The compile-time `ATT_FLOAT_EPSILON` is just the initial value;
+you can also change the tolerance at runtime, the same way you change verbosity:
+
+```c
+att_set_float_epsilon(1e-6);
+ATT_ASSERT(0.1 + 0.2, 0.3, "sum within epsilon")
+att_set_float_epsilon(0); // back to exact equality
+```
 
 ### Custom callback
 

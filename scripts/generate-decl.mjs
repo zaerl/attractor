@@ -147,6 +147,8 @@ function fn_content(type_info, unsigned, is_const) {
     } else if(type_info.name === 'char*' || type_info.name === 'const char*') {
         comparison = '((result == expected) || ((result && expected) ? strcmp(result, expected) == 0 : 0))';
         s_format = 'ATT_STRING_AS_POINTERS == 1 ? "%p" : "\\"%s\\""';
+    } else if(type_info.name === 'float' || type_info.name === 'double' || type_info.name === 'long double') {
+        comparison = '(result == expected) || ((result > expected ? result - expected : expected - result) <= att_float_epsilon)';
     }
 
     return fn_decl(type_info, unsigned, is_const) + ` {
