@@ -93,11 +93,12 @@ Tests valid/run: 3/3
 
 ## Examples with errors
 
-If we change `var_to_test_2` in `1.0` this is the output with `verbose = 1`:
+If we change `var_to_test_2` in `1.0` this is the output with `verbose = 1`. Each failure is
+prefixed with the source `file:line` of the failing `ATT_ASSERT`:
 
 ```c
 .F
-Expected 2.000000, got 3.000000
+test.c:61: Expected 2.000000, got 3.000000
 
 .
 Tests valid/run: 2/3
@@ -108,7 +109,7 @@ And with `verbose = 2`:
 ```
 [%d] one == one:                                                              OK
 [%f] 2.0 == 2.0:                                                            FAIL
-Expected 2.000000, got 3.000000
+test.c:61: Expected 2.000000, got 3.000000
 
 [%lld] long long 3 == long long 3:                                            OK
 

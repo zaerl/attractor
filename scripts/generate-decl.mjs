@@ -109,7 +109,7 @@ function fn_decl(type_info, unsigned, is_const) {
         type = type_info.alt_name;
     }
 
-    return `\nATT_API unsigned int ${fn}(${type} result, ${type} expected, const char *description)`;
+    return `\nATT_API unsigned int ${fn}(${type} result, ${type} expected, const char *description, const char *file, unsigned int line)`;
 }
 
 function fn_content(type_info, unsigned, is_const) {
@@ -217,8 +217,8 @@ if(generate_c) {
     let substitution = "\n#ifndef ATT_CUSTOM_TYPES\n#define ATT_CUSTOM_TYPES\n#endif\n" +
         "\n#ifndef __cplusplus\n#define ATT_ASSERT(VALUE, EXPECTED, MESSAGE) _Generic(VALUE, \\\n    ATT_CUSTOM_TYPES \\\n    " +
         generics.join(', \\\n    ') +
-        " \\\n)(VALUE, EXPECTED, MESSAGE);\n#else\n" +
-        "#define ATT_ASSERT(VALUE, EXPECTED, MESSAGE) att_assert_cpp(VALUE, EXPECTED, MESSAGE);\n" +
+        " \\\n)(VALUE, EXPECTED, MESSAGE, __FILE__, __LINE__);\n#else\n" +
+        "#define ATT_ASSERT(VALUE, EXPECTED, MESSAGE) att_assert_cpp(VALUE, EXPECTED, MESSAGE, __FILE__, __LINE__);\n" +
         "#endif\n" +
         decls.join(';') + ";";
 
