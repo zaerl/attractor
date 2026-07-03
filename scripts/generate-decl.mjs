@@ -221,13 +221,22 @@ if(generate_c) {
     writeFileSync('./attractor.c', file_content);
 } else {
     let file_content = readFileSync('./attractor.h', 'utf-8');
-    let substitution = "\n#ifndef ATT_CUSTOM_TYPES\n#define ATT_CUSTOM_TYPES\n#endif\n" +
-        "\n#ifndef __cplusplus\n#define ATT_ASSERT(VALUE, EXPECTED, MESSAGE) _Generic(VALUE, \\\n    ATT_CUSTOM_TYPES \\\n    " +
-        generics.join(', \\\n    ') +
-        " \\\n)(VALUE, EXPECTED, MESSAGE, __FILE__, __LINE__);\n#else\n" +
-        "#define ATT_ASSERT(VALUE, EXPECTED, MESSAGE) att_assert_cpp(VALUE, EXPECTED, MESSAGE, __FILE__, __LINE__);\n" +
-        "#endif\n" +
-        decls.join(';') + ";";
+    let substitution = `
+#ifndef ATT_CUSTOM_TYPES
+#define ATT_CUSTOM_TYPES
+#endif
+
+#ifndef __cplusplus
+#define ATT_ASSERT(VALUE, EXPECTED, MESSAGE) _Generic(VALUE, \\
+    ATT_CUSTOM_TYPES \\
+    ${generics.join(', \\\n    ')} \\
+)(VALUE, EXPECTED, MESSAGE, __FILE__, __LINE__);
+#else
+#define ATT_ASSERT(VALUE, EXPECTED, MESSAGE) att_assert_cpp(VALUE, EXPECTED, MESSAGE, __FILE__, __LINE__);
+#endif\n`;
+
+    substitution += decls.join(';');
+    substitution += ';';
 
     file_content = substitute_text(
         file_content, "#define ATT_STRING_AS_POINTERS 0\n#endif\n",
