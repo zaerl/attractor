@@ -169,10 +169,6 @@ function fn_content(type_info, unsigned, is_const) {
         ${error_message}
     }
 
-    if(att_t_callback) {
-        att_t_callback(test, description);
-    }
-
     return test;
 }`;
 }
@@ -233,12 +229,15 @@ if(generate_c) {
 #endif
 
 #ifndef __cplusplus
-#define ATT_ASSERT(VALUE, EXPECTED, MESSAGE) _Generic(VALUE, \\
+#define ATT_ASSERT(VALUE, EXPECTED, MESSAGE) \\
+    (att_set_assert_context(#VALUE, __FILE__, __LINE__), _Generic(VALUE, \\
     ATT_CUSTOM_TYPES \\
     ${generics.join(', \\\n    ')} \\
-)(VALUE, EXPECTED, MESSAGE, __FILE__, __LINE__);
+)(VALUE, EXPECTED, MESSAGE, __FILE__, __LINE__));
 #else
-#define ATT_ASSERT(VALUE, EXPECTED, MESSAGE) att_assert_cpp(VALUE, EXPECTED, MESSAGE, __FILE__, __LINE__);
+#define ATT_ASSERT(VALUE, EXPECTED, MESSAGE) \\
+    (att_set_assert_context(#VALUE, __FILE__, __LINE__), \\
+     att_assert_cpp(VALUE, EXPECTED, MESSAGE, __FILE__, __LINE__));
 #endif\n`;
 
     substitution += decls.join(';');
