@@ -146,18 +146,24 @@ function fn_content(type_info, unsigned, is_const) {
         error_message = `ATT_ERROR_MESSAGE(result, ${s_format}, ${s_format}, expected);`;
     }
 
+    let description = ' description';
+
     if(type_info.name === 'default') {
-        comparison = `att_callback ? att_callback(result, expected, description) : (${comparison})`;
-        type = `att_callback ? "callback" : "default"`;
+        comparison = `
+        att_generic_callback_fn ? "callback" : "default",
+        att_generic_callback_fn ? att_generic_callback_fn(result, expected, description) : (result == expected)`;
+        description = '\n        description\n    ';
     } else if(type_info.name === 'char*' || type_info.name === 'const char*') {
-        comparison = '((result == expected) || ((result && expected) ? strcmp(result, expected) == 0 : 0))';
+        comparison = type + ', ((result == expected) || ((result && expected) ? strcmp(result, expected) == 0 : 0))';
         s_format = 'ATT_STRING_AS_POINTERS == 1 ? "%p" : "\\"%s\\""';
     } else if(type_info.name === 'float' || type_info.name === 'double' || type_info.name === 'long double') {
-        comparison = '(result == expected) || ((result > expected ? result - expected : expected - result) <= att_float_epsilon)';
+        comparison = type + ', (result == expected) || ((result > expected ? result - expected : expected - result) <= att_float_epsilon)';
+    } else {
+        comparison = type + ', ' + comparison;
     }
 
     return fn_decl(type_info, unsigned, is_const) + ` {
-    int test = att_assert(${type}, ${comparison}, description);
+    int test = att_assert(${comparison},${description});
 
     if(!test) {
         ${error_message}
