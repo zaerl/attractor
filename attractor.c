@@ -55,7 +55,7 @@ static unsigned int att_verbose = ATT_VERBOSE;
 static unsigned int att_show_error = ATT_SHOW_ERROR;
 static int att_show_colors = 0;
 static long double att_float_epsilon = ATT_FLOAT_EPSILON;
-static att_generic_callback att_callback = NULL;
+static att_generic_callback att_generic_callback_fn = NULL;
 static att_test_callback att_t_callback = NULL;
 
 unsigned int att_get_valid_tests(void) {
@@ -83,7 +83,7 @@ void att_set_float_epsilon(long double epsilon) {
 }
 
 void att_set_generic_callback(att_generic_callback callback) {
-    att_callback = callback;
+    att_generic_callback_fn = callback;
 }
 
 void att_set_test_callback(att_test_callback callback) {
@@ -361,7 +361,11 @@ ATT_API unsigned int att_assert_b(_Bool result, _Bool expected, const char *desc
 }
 
 ATT_API unsigned int att_assert_unknown(void* result, void* expected, const char *description, const char *file, unsigned int line) {
-    int test = att_assert(att_callback ? "callback" : "default", att_callback ? att_callback(result, expected, description) : (result == expected), description);
+    int test = att_assert(
+        att_generic_callback_fn ? "callback" : "default",
+        att_generic_callback_fn ? att_generic_callback_fn(result, expected, description) : (result == expected),
+        description
+    );
 
     if(!test) {
         ATT_ERROR_MESSAGE(result, "%p", "%p", expected);
