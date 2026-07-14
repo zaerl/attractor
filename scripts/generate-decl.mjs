@@ -57,7 +57,7 @@ const types = [
         alt_formats: [ 'd' ]
     }, {
         name: 'default',
-        alt_name: 'void*',
+        alt_name: 'void *',
         ptr: true,
         formats: [ 'unknown' ],
         alt_formats: [ 'p' ]
@@ -114,7 +114,9 @@ function fn_decl(type_info, unsigned, is_const) {
         type = type_info.alt_name;
     }
 
-    return `\nATT_API unsigned int ${fn}(${type} result, ${type} expected, const char *description, const char *file, unsigned int line)`;
+    const postfix = type_info.name.endsWith('*') ? '' : ' ';
+
+    return `\nATT_API unsigned int ${fn}(${type}${postfix}result, ${type}${postfix}expected, const char *description, const char *file, unsigned int line)`;
 }
 
 function fn_content(type_info, unsigned, is_const) {
@@ -198,14 +200,14 @@ for(const type_info of types) {
     const name = type_info.name;
 
     if(type_info.ptr) {
-        type_info.name = name === 'default' ? name : name + '*';
+        type_info.name = name === 'default' ? name : name + ' *';
         decls.push(fn_decl(type_info, false, false));
         generics.push(generic_decl(type_info, false, false));
         contents.push(fn_content(type_info, false, false));
     }
 
     if(type_info.const_ptr) {
-        type_info.name = 'const ' + name + '*';
+        type_info.name = 'const ' + name + ' *';
 
         decls.push(fn_decl(type_info, false, true));
         generics.push(generic_decl(type_info, false, true));

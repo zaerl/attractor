@@ -22,6 +22,9 @@ void *test_strings(void *arg) {
     ATT_ASSERT(cstr, cstr2, "Const \"qux\" = const \"qux\"")
 
     ATT_ASSERT((char*)NULL, NULL, "NULL")
+#ifdef __cplusplus
+    ATT_ASSERT((char*)nullptr, nullptr, "nullptr")
+#endif
 
     return NULL;
 }

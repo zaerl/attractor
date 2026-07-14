@@ -157,8 +157,8 @@ ATT_API unsigned int att_assert_u_c(unsigned char result, unsigned char expected
     return test;
 }
 
-ATT_API unsigned int att_assert_p_c(char* result, char* expected, const char *description, const char *file, unsigned int line) {
-    int test = att_assert("char*", ((result == expected) || ((result && expected) ? strcmp(result, expected) == 0 : 0)), description);
+ATT_API unsigned int att_assert_p_c(char *result, char *expected, const char *description, const char *file, unsigned int line) {
+    int test = att_assert("char *", result == expected, description);
 
     if(!test) {
         ATT_ERROR_MESSAGE(result, ATT_STRING_AS_POINTERS == 1 ? "%p" : "\"%s\"", ATT_STRING_AS_POINTERS == 1 ? "%p" : "\"%s\"", expected);
@@ -167,8 +167,8 @@ ATT_API unsigned int att_assert_p_c(char* result, char* expected, const char *de
     return test;
 }
 
-ATT_API unsigned int att_assert_cp_c(const char* result, const char* expected, const char *description, const char *file, unsigned int line) {
-    int test = att_assert("const char*", ((result == expected) || ((result && expected) ? strcmp(result, expected) == 0 : 0)), description);
+ATT_API unsigned int att_assert_cp_c(const char *result, const char *expected, const char *description, const char *file, unsigned int line) {
+    int test = att_assert("const char *", result == expected, description);
 
     if(!test) {
         ATT_ERROR_MESSAGE(result, ATT_STRING_AS_POINTERS == 1 ? "%p" : "\"%s\"", ATT_STRING_AS_POINTERS == 1 ? "%p" : "\"%s\"", expected);
@@ -287,8 +287,8 @@ ATT_API unsigned int att_assert_Lf(long double result, long double expected, con
     return test;
 }
 
-ATT_API unsigned int att_assert_p_p(void* result, void* expected, const char *description, const char *file, unsigned int line) {
-    int test = att_assert("void*", result == expected, description);
+ATT_API unsigned int att_assert_p_p(void *result, void *expected, const char *description, const char *file, unsigned int line) {
+    int test = att_assert("void *", result == expected, description);
 
     if(!test) {
         ATT_ERROR_MESSAGE(result, "%p", "%p", expected);
@@ -307,7 +307,7 @@ ATT_API unsigned int att_assert_b(_Bool result, _Bool expected, const char *desc
     return test;
 }
 
-ATT_API unsigned int att_assert_unknown(void* result, void* expected, const char *description, const char *file, unsigned int line) {
+ATT_API unsigned int att_assert_unknown(void * result, void * expected, const char *description, const char *file, unsigned int line) {
     int test = att_assert(
         att_generic_callback_fn ? "callback" : "default",
         att_generic_callback_fn ? att_generic_callback_fn(result, expected, description) : (result == expected),

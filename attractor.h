@@ -19,6 +19,8 @@
 #include <stdbool.h>
 
 #ifdef __cplusplus
+#include <cstddef>
+#include <cstdint>
 #include <type_traits>
 #include <string>
 
@@ -62,8 +64,8 @@ extern "C" {
     ATT_CUSTOM_TYPES \
     char: att_assert_c, \
     unsigned char: att_assert_u_c, \
-    char*: att_assert_p_c, \
-    const char*: att_assert_cp_c, \
+    char *: att_assert_p_c, \
+    const char *: att_assert_cp_c, \
     short: att_assert_hd, \
     unsigned short: att_assert_u_hu, \
     int: att_assert_d, \
@@ -75,7 +77,7 @@ extern "C" {
     float: att_assert_f, \
     double: att_assert_lf, \
     long double: att_assert_Lf, \
-    void*: att_assert_p_p, \
+    void *: att_assert_p_p, \
     _Bool: att_assert_b, \
     default: att_assert_unknown \
 )(VALUE, EXPECTED, MESSAGE, __FILE__, __LINE__));
@@ -87,8 +89,8 @@ extern "C" {
 
 ATT_API unsigned int att_assert_c(char result, char expected, const char *description, const char *file, unsigned int line);
 ATT_API unsigned int att_assert_u_c(unsigned char result, unsigned char expected, const char *description, const char *file, unsigned int line);
-ATT_API unsigned int att_assert_p_c(char* result, char* expected, const char *description, const char *file, unsigned int line);
-ATT_API unsigned int att_assert_cp_c(const char* result, const char* expected, const char *description, const char *file, unsigned int line);
+ATT_API unsigned int att_assert_p_c(char *result, char *expected, const char *description, const char *file, unsigned int line);
+ATT_API unsigned int att_assert_cp_c(const char *result, const char *expected, const char *description, const char *file, unsigned int line);
 ATT_API unsigned int att_assert_hd(short result, short expected, const char *description, const char *file, unsigned int line);
 ATT_API unsigned int att_assert_u_hu(unsigned short result, unsigned short expected, const char *description, const char *file, unsigned int line);
 ATT_API unsigned int att_assert_d(int result, int expected, const char *description, const char *file, unsigned int line);
@@ -100,9 +102,9 @@ ATT_API unsigned int att_assert_u_llu(unsigned long long result, unsigned long l
 ATT_API unsigned int att_assert_f(float result, float expected, const char *description, const char *file, unsigned int line);
 ATT_API unsigned int att_assert_lf(double result, double expected, const char *description, const char *file, unsigned int line);
 ATT_API unsigned int att_assert_Lf(long double result, long double expected, const char *description, const char *file, unsigned int line);
-ATT_API unsigned int att_assert_p_p(void* result, void* expected, const char *description, const char *file, unsigned int line);
+ATT_API unsigned int att_assert_p_p(void *result, void *expected, const char *description, const char *file, unsigned int line);
 ATT_API unsigned int att_assert_b(_Bool result, _Bool expected, const char *description, const char *file, unsigned int line);
-ATT_API unsigned int att_assert_unknown(void* result, void* expected, const char *description, const char *file, unsigned int line);
+ATT_API unsigned int att_assert_unknown(void * result, void * expected, const char *description, const char *file, unsigned int line);
 
 unsigned int att_get_valid_tests(void);
 unsigned int att_get_total_tests(void);
@@ -207,17 +209,37 @@ inline unsigned int att_assert_cpp(void* result, void* expected, const char *des
     return att_assert_p_p(result, expected, description, file, line);
 }
 
-// Special overloads for NULL pointer comparisons
+// Convert the int form of NULL through a pointer-sized integer. On LLP64 platforms (64-bit Windows),
+// long is narrower than a pointer.
+template<typename T>
+inline T* att_pointer_from_long(long value) {
+    return value == 0 ? nullptr : reinterpret_cast<T*>(static_cast<std::intptr_t>(value));
+}
+
+// Special overloads for legacy NULL pointer comparisons
 inline unsigned int att_assert_cpp(const char* result, long expected, const char *description, const char *file, unsigned int line) {
-    return att_assert_cp_c(result, (const char*)expected, description, file, line);
+    return att_assert_cp_c(result, att_pointer_from_long<const char>(expected), description, file, line);
 }
 
 inline unsigned int att_assert_cpp(char* result, long expected, const char *description, const char *file, unsigned int line) {
-    return att_assert_p_c(result, (char*)expected, description, file, line);
+    return att_assert_p_c(result, att_pointer_from_long<char>(expected), description, file, line);
 }
 
 inline unsigned int att_assert_cpp(void* result, long expected, const char *description, const char *file, unsigned int line) {
-    return att_assert_p_p(result, (void*)expected, description, file, line);
+    return att_assert_p_p(result, att_pointer_from_long<void>(expected), description, file, line);
+}
+
+// Modern C++ null pointer comparisons
+inline unsigned int att_assert_cpp(const char* result, std::nullptr_t, const char *description, const char *file, unsigned int line) {
+    return att_assert_cp_c(result, nullptr, description, file, line);
+}
+
+inline unsigned int att_assert_cpp(char* result, std::nullptr_t, const char *description, const char *file, unsigned int line) {
+    return att_assert_p_c(result, nullptr, description, file, line);
+}
+
+inline unsigned int att_assert_cpp(void* result, std::nullptr_t, const char *description, const char *file, unsigned int line) {
+    return att_assert_p_p(result, nullptr, description, file, line);
 }
 
 // Mixed char pointer types (char* vs const char*)
