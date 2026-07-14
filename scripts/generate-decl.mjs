@@ -219,7 +219,7 @@ if(generate_c) {
     let file_content = readFileSync('./attractor.c', 'utf-8');
     file_content = substitute_text(
         file_content, "int att_assert(const char *type, int test, const char *description);\n",
-        "\n\nint att_assert(const char *format",
+        "\n\n// clang-format on",
         contents.join('\n'));
 
     writeFileSync('./attractor.c', file_content);
@@ -230,6 +230,7 @@ if(generate_c) {
 #define ATT_CUSTOM_TYPES
 #endif
 
+// clang-format off
 #ifndef __cplusplus
 #define ATT_ASSERT(VALUE, EXPECTED, MESSAGE) \\
     (att_set_assert_context(#VALUE, __FILE__, __LINE__), _Generic(VALUE, \\
