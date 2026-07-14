@@ -155,7 +155,7 @@ function fn_content(type_info, unsigned, is_const) {
         att_generic_callback_fn ? "callback" : "default",
         att_generic_callback_fn ? att_generic_callback_fn(result, expected, description) : (result == expected)`;
         description = '\n        description\n    ';
-    } else if(type_info.name === 'char*' || type_info.name === 'const char*') {
+    } else if(type_info.name === 'char *' || type_info.name === 'const char *') {
         comparison = type + ', ((result == expected) || ((result && expected) ? strcmp(result, expected) == 0 : 0))';
         s_format = 'ATT_STRING_AS_POINTERS == 1 ? "%p" : "\\"%s\\""';
     } else if(type_info.name === 'float' || type_info.name === 'double' || type_info.name === 'long double') {
