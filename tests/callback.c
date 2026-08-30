@@ -22,9 +22,9 @@ int callback(int test, const char *description, const char *expression, const ch
 void *test_callback(void *arg) {
     att_set_test_callback(callback);
 
-    ATT_ASSERT(1, 1, "Callback was set")
-    ATT_ASSERT(callback_called, 1, "Callback was called")
-    ATT_ASSERT(last_expression, "callback_called", "\"callback_called\" = \"callback_called\"")
+    ATT_ASSERT(1, 1, "Callback was set");
+    ATT_ASSERT(callback_called, 1, "Callback was called");
+    ATT_ASSERT(last_expression, "callback_called", "\"callback_called\" = \"callback_called\"");
 
     att_set_test_callback(NULL);
 

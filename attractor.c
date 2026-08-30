@@ -403,3 +403,66 @@ int att_assert(const char *format, int test, const char *description) {
 
     return test;
 }
+
+ATT_API unsigned int att_assert_true(int result, const char *description, const char *file,
+    unsigned int line) {
+    int test = att_assert("true", result != 0, description);
+
+    if(!test) {
+        ATT_ERROR_MESSAGE("false", "%s", "%s", "true");
+    }
+
+    return test;
+}
+
+ATT_API unsigned int att_assert_mem(const void *result, const void *expected, size_t size,
+    const char *description, const char *file, unsigned int line) {
+    int test = att_assert("memory",
+        (result == expected) || (result && expected && memcmp(result, expected, size) == 0),
+        description);
+
+    if(!test) {
+        if(!result || !expected) {
+            ATT_ERROR_MESSAGE((void *)result, "%p", "%p", (void *)expected);
+        } else if(att_show_error) {
+            const unsigned char *res = (const unsigned char *)result;
+            const unsigned char *exp = (const unsigned char *)expected;
+            size_t offset = 0;
+
+            while(offset < size && res[offset] == exp[offset]) {
+                ++offset;
+            }
+
+            printf(att_show_colors ? "\x1B[90m%s:%u:\x1B[0m " : "%s:%u: ", file, line);
+
+            if(att_verbose < 2) {
+                printf("%s: ", description);
+            }
+
+            printf(att_show_colors ?
+                    "Byte %zu: expected \x1B[32m0x%02X\x1B[0m, got \x1B[31m0x%02X\x1B[0m\n\n" :
+                    "Byte %zu: expected 0x%02X, got 0x%02X\n\n",
+                offset, exp[offset], res[offset]);
+        }
+    }
+
+    return test;
+}
+
+int att_report(void) {
+    unsigned int total = (unsigned int)att_total_tests;
+    unsigned int valid = (unsigned int)att_valid_tests;
+    int all_valid = valid == total;
+
+    // The dots printed with verbose = 1 leave the line unterminated.
+    if(att_verbose == 1 && total > 0) {
+        fputs("\n", stdout);
+    }
+
+    printf(att_show_colors ? (all_valid ? "Tests valid/run: \x1B[32m%u/%u\x1B[0m\n" :
+                                          "Tests valid/run: \x1B[31m%u/%u\x1B[0m\n") :
+                             "Tests valid/run: %u/%u\n",
+        valid, total);
+
+    return all_valid ? 0 : 1;
+}

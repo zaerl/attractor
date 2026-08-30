@@ -8,11 +8,16 @@ Copy `attractor.c` and `attractor.h` in your test folder.
 
 ## Usage
 
-Attractor provide a `ATT_ASSERT` macro that you can use to test your code. The macro outputs a
-number different from zero if the test passes:
+Attractor provide a `ATT_ASSERT` macro that you can use to test your code. The macro is an
+expression that evaluates to a number different from zero if the test passes:
 
 ```c
-ATT_ASSERT(the_value_to_test, the_expected_value, "description")
+ATT_ASSERT(the_value_to_test, the_expected_value, "description");
+
+// Or, being an expression:
+if(!ATT_ASSERT(the_value_to_test, the_expected_value, "description")) {
+    // React to the failure
+}
 ```
 
 The `ATT_ASSERT` macro accept these types:
@@ -37,33 +42,51 @@ The `ATT_ASSERT` macro accept these types:
 
 In case of unknown type the input is assumed to be `void*`.
 
+Two more assertion macros cover the common cases that are not a typed equality:
+
+```c
+ATT_ASSERT_TRUE(strcmp(a, b) < 0, "a sorts before b");
+ATT_ASSERT_MEM(buffer, expected_buffer, sizeof(buffer), "buffers are equal");
+```
+
+`ATT_ASSERT_TRUE` passes when the condition is true. `ATT_ASSERT_MEM` compares two memory regions
+byte by byte and, on failure, reports the offset and value of the first differing byte.
+
 ## API
 
 1. `ATT_ASSERT(value, expected, description)` you pass the value to test, the expected one and a
    description of the test.
-2. `void att_set_verbose(unsigned int verbose)` set verbosity.
-3. `void att_set_show_error(unsigned int show_error)` set to show errors.
-4. `void att_set_generic_callback(att_generic_callback callback)` set a callback to run for generic
+2. `ATT_ASSERT_TRUE(condition, description)` assert that a condition is true.
+3. `ATT_ASSERT_MEM(value, expected, size, description)` assert that two memory regions of `size`
+   bytes are equal.
+4. `int att_report(void)` print the `Tests valid/run: X/Y` summary and return `0` if every test
+   passed, `1` otherwise. Meant to be used as the return value of `main()`.
+5. `void att_set_verbose(unsigned int verbose)` set verbosity.
+6. `void att_set_show_error(unsigned int show_error)` set to show errors.
+7. `void att_set_generic_callback(att_generic_callback callback)` set a callback to run for generic
    tests
-5. `void att_set_test_callback(att_test_callback callback)` set a callback to call for all tests.
-6. `unsigned int att_get_valid_tests(void)` return the count of valid tests.
-7. `unsigned int att_get_total_tests(void)` return the count of run tests.
-8. `void att_set_float_epsilon(long double epsilon)` set the tolerance for float comparisons.
-9. `long double att_get_float_epsilon(void)` return the current float comparison tolerance.
+8. `void att_set_test_callback(att_test_callback callback)` set a callback to call for all tests.
+9. `unsigned int att_get_valid_tests(void)` return the count of valid tests.
+10. `unsigned int att_get_total_tests(void)` return the count of run tests.
+11. `void att_set_float_epsilon(long double epsilon)` set the tolerance for float comparisons.
+12. `long double att_get_float_epsilon(void)` return the current float comparison tolerance.
 
 ## Examples
 
 ```c
 #include <attractor.h>
 
-int var_to_test_1 = 1;
-float var_to_test_2 = 2.0;
+int main(void) {
+    int var_to_test_1 = 1;
+    float var_to_test_2 = 2.0;
 
-ATT_ASSERT(var_to_test_1, 1, "one == one")
-ATT_ASSERT(var_to_test_2, 2.0, "2.0 == 2.0")
-ATT_ASSERT(3ll, 3ll, "long long 3 == long long 3")
+    ATT_ASSERT(var_to_test_1, 1, "one == one");
+    ATT_ASSERT(var_to_test_2, 2.0, "2.0 == 2.0");
+    ATT_ASSERT(3ll, 3ll, "long long 3 == long long 3");
 
-printf("\nTests valid/run: %d/%d\n", att_get_valid_tests(), att_get_total_tests());
+    // Print "Tests valid/run: 3/3" and exit non-zero if a test failed
+    return att_report();
+}
 ```
 
 The code does not output anything by default. But you can change this using:
@@ -155,7 +178,7 @@ equal when their absolute difference is within `ATT_FLOAT_EPSILON`:
 // 1e-6 is usually enough
 #define ATT_FLOAT_EPSILON 1e-6
 
-ATT_ASSERT(0.1 + 0.2, 0.3, "sum within epsilon")
+ATT_ASSERT(0.1 + 0.2, 0.3, "sum within epsilon");
 ```
 
 The default is `0` (exact equality). The compile-time `ATT_FLOAT_EPSILON` is just the initial value;
@@ -163,7 +186,7 @@ you can also change the tolerance at runtime, the same way you change verbosity:
 
 ```c
 att_set_float_epsilon(1e-6);
-ATT_ASSERT(0.1 + 0.2, 0.3, "sum within epsilon")
+ATT_ASSERT(0.1 + 0.2, 0.3, "sum within epsilon");
 att_set_float_epsilon(0); // back to exact equality
 ```
 
@@ -194,7 +217,7 @@ void test_unknown_callback() {
     sb.unknown = 1;
 
     att_set_generic_callback(&assert_unknown);
-    ATT_ASSERT(&sa, &sb, "Unknown struct sa = sb")
+    ATT_ASSERT(&sa, &sb, "Unknown struct sa = sb");
     att_set_generic_callback(NULL);
 }
 ```

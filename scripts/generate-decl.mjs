@@ -236,11 +236,11 @@ if(generate_c) {
     (att_set_assert_context(#VALUE, __FILE__, __LINE__), _Generic(VALUE, \\
     ATT_CUSTOM_TYPES \\
     ${generics.join(', \\\n    ')} \\
-)(VALUE, EXPECTED, MESSAGE, __FILE__, __LINE__));
+)(VALUE, EXPECTED, MESSAGE, __FILE__, __LINE__))
 #else
 #define ATT_ASSERT(VALUE, EXPECTED, MESSAGE) \\
     (att_set_assert_context(#VALUE, __FILE__, __LINE__), \\
-     att_assert_cpp(VALUE, EXPECTED, MESSAGE, __FILE__, __LINE__));
+     att_assert_cpp(VALUE, EXPECTED, MESSAGE, __FILE__, __LINE__))
 #endif\n`;
 
     substitution += decls.join(';');

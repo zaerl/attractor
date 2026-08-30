@@ -12,6 +12,7 @@
 
 #define DECLARE_TEST(NAME) void *test_##NAME(void *arg);
 
+DECLARE_TEST(asserts)
 DECLARE_TEST(chars)
 DECLARE_TEST(callback)
 DECLARE_TEST(custom)
@@ -34,6 +35,7 @@ int main(int argc, const char *argv[]) {
         pthread_create(&thread_##NAME, NULL, test_##NAME, NULL); \
         pthread_join(thread_##NAME, NULL);
 
+    RUN_TEST(asserts)
     RUN_TEST(callback)
     RUN_TEST(chars)
     RUN_TEST(custom)
@@ -44,19 +46,12 @@ int main(int argc, const char *argv[]) {
     RUN_TEST(voids)
     RUN_TEST(unknowns)
 
-    unsigned int tests_valid = att_get_valid_tests();
-    unsigned int tests_total = att_get_total_tests();
-    int valid = tests_valid == tests_total;
-
-    /* Green if valid and red if not */
-    const char *color_code = valid ? "\x1B[32m" : "\x1B[31m";
-
-    printf("Tests valid/run: %s%d/%d\n\x1B[0m", color_code, tests_valid, tests_total);
+    int failed = att_report();
 
     clock_gettime(CLOCK_MONOTONIC, &end);
     elapsed = (end.tv_sec - start.tv_sec) + (end.tv_nsec - start.tv_nsec) / 1e9;
 
     printf("Execution time: %.4f seconds\n", elapsed);
 
-    return valid ? 0 : -1;
+    return failed;
 }

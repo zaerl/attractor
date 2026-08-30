@@ -17,6 +17,7 @@
 #define ATT_TEST_H
 
 #include <stdbool.h>
+#include <stddef.h>
 
 #ifdef __cplusplus
 #include <cstddef>
@@ -81,11 +82,11 @@ extern "C" {
     void *: att_assert_p_p, \
     _Bool: att_assert_b, \
     default: att_assert_unknown \
-)(VALUE, EXPECTED, MESSAGE, __FILE__, __LINE__));
+)(VALUE, EXPECTED, MESSAGE, __FILE__, __LINE__))
 #else
 #define ATT_ASSERT(VALUE, EXPECTED, MESSAGE) \
     (att_set_assert_context(#VALUE, __FILE__, __LINE__), \
-     att_assert_cpp(VALUE, EXPECTED, MESSAGE, __FILE__, __LINE__));
+     att_assert_cpp(VALUE, EXPECTED, MESSAGE, __FILE__, __LINE__))
 #endif
 
 ATT_API unsigned int att_assert_c(char result, char expected, const char *description, const char *file, unsigned int line);
@@ -109,6 +110,24 @@ ATT_API unsigned int att_assert_unknown(void * result, void * expected, const ch
 
 unsigned int att_get_valid_tests(void);
 unsigned int att_get_total_tests(void);
+
+// Assert that a condition is true. Works in both C and C++.
+#define ATT_ASSERT_TRUE(VALUE, MESSAGE) \
+    (att_set_assert_context(#VALUE, __FILE__, __LINE__), \
+     att_assert_true((VALUE) ? 1 : 0, MESSAGE, __FILE__, __LINE__))
+
+// Assert that two memory regions of SIZE bytes are equal. Two NULL pointers are
+// considered equal; a NULL and a non-NULL pointer are not.
+#define ATT_ASSERT_MEM(VALUE, EXPECTED, SIZE, MESSAGE) \
+    (att_set_assert_context(#VALUE, __FILE__, __LINE__), \
+     att_assert_mem(VALUE, EXPECTED, SIZE, MESSAGE, __FILE__, __LINE__))
+
+ATT_API unsigned int att_assert_true(int result, const char *description, const char *file, unsigned int line);
+ATT_API unsigned int att_assert_mem(const void *result, const void *expected, size_t size, const char *description, const char *file, unsigned int line);
+
+// Print a summary of the tests run ("Tests valid/run: X/Y") and return 0 if all
+// tests passed, 1 otherwise. Suitable as the return value of main().
+int att_report(void);
 
 void att_set_verbose(unsigned int verbose);
 void att_set_show_error(unsigned int show_error);
