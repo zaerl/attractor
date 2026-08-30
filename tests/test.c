@@ -8,6 +8,8 @@
 #include <stdio.h>
 #include <time.h>
 
+// The single translation unit that carries the library implementation.
+#define ATT_IMPLEMENTATION
 #include "../attractor.h"
 
 #define DECLARE_TEST(NAME) void *test_##NAME(void *arg);

@@ -182,8 +182,6 @@ function generic_decl(type_info, unsigned, is_const) {
     return `${type}: ${fn}`;
 }
 
-const generate_c = process.argv.length === 3 && process.argv[2] === 'c';
-
 for(const type_info of types) {
     if(type_info.signed) {
         decls.push(fn_decl(type_info, false, false));
@@ -215,17 +213,8 @@ for(const type_info of types) {
     }
 }
 
-if(generate_c) {
-    let file_content = readFileSync('./attractor.c', 'utf-8');
-    file_content = substitute_text(
-        file_content, "int att_assert(const char *type, int test, const char *description);\n",
-        "\n\n// clang-format on",
-        contents.join('\n'));
-
-    writeFileSync('./attractor.c', file_content);
-} else {
-    let file_content = readFileSync('./attractor.h', 'utf-8');
-    let substitution = `
+let file_content = readFileSync('./attractor.h', 'utf-8');
+let substitution = `
 #ifndef ATT_CUSTOM_TYPES
 #define ATT_CUSTOM_TYPES
 #endif
@@ -243,13 +232,19 @@ if(generate_c) {
      att_assert_cpp(VALUE, EXPECTED, MESSAGE, __FILE__, __LINE__))
 #endif\n`;
 
-    substitution += decls.join(';');
-    substitution += ';';
+substitution += decls.join(';');
+substitution += ';';
 
-    file_content = substitute_text(
-        file_content, "#define ATT_STRING_AS_POINTERS 0\n#endif\n",
-        "\n\nunsigned int att_get_valid_tests(void);",
-        substitution);
+// Declarations and the ATT_ASSERT macro
+file_content = substitute_text(
+    file_content, "#define ATT_STRING_AS_POINTERS 0\n#endif\n",
+    "\n\nunsigned int att_get_valid_tests(void);",
+    substitution);
 
-    writeFileSync('./attractor.h', file_content);
-}
+// Function bodies in the ATT_IMPLEMENTATION section
+file_content = substitute_text(
+    file_content, "int att_assert(const char *type, int test, const char *description);\n",
+    "\n\n// clang-format on",
+    contents.join('\n'));
+
+writeFileSync('./attractor.h', file_content);

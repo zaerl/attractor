@@ -4,7 +4,16 @@ Attractor is a single function unit test framework written in C11.
 
 ## Installation
 
-Copy `attractor.c` and `attractor.h` in your test folder.
+Attractor is a single-header library: copy `attractor.h` in your test folder. In exactly one .c/.cpp
+source file define `ATT_IMPLEMENTATION` before including the header:
+
+```c
+// define ATT_IMPLEMENTATION for only *one* .c/.cpp
+#define ATT_IMPLEMENTATION
+#include "attractor.h"
+```
+
+Every other source file just includes `attractor.h`.
 
 ## Usage
 
@@ -74,7 +83,8 @@ byte by byte and, on failure, reports the offset and value of the first differin
 ## Examples
 
 ```c
-#include <attractor.h>
+#define ATT_IMPLEMENTATION
+#include "attractor.h"
 
 int main(void) {
     int var_to_test_1 = 1;
@@ -195,7 +205,7 @@ att_set_float_epsilon(0); // back to exact equality
 You can register a custom function to be called when a type is not one of the list.
 
 ```c
-#include <attractor.h>
+#include "attractor.h"
 
 typedef struct unknown_struct {
     int unknown;
