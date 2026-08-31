@@ -11,8 +11,10 @@ typedef struct unknown_struct {
     int unknown;
 } unknown_struct;
 
-int assert_unknown(void* result, void* expected, const char *description) {
-    return ((unknown_struct*)result)->unknown == ((unknown_struct*)expected)->unknown;
+int assert_unknown(void* result, void* expected, att_op op, const char *description) {
+    int equal = ((unknown_struct*)result)->unknown == ((unknown_struct*)expected)->unknown;
+
+    return op == ATT_OP_NE ? !equal : equal;
 }
 
 void *test_unknowns(void *arg) {
@@ -36,6 +38,9 @@ void *test_unknowns(void *arg) {
 
     att_set_generic_callback(&assert_unknown);
     ATT_ASSERT(&sa, &sb, "Unknown struct sa = sb");
+
+    sb.unknown = 2;
+    ATT_ASSERT_NE(&sa, &sb, "Unknown struct sa != sb via callback");
     att_set_generic_callback(NULL);
 
     return NULL;

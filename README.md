@@ -51,10 +51,26 @@ The `ATT_ASSERT` macro accept these types:
 
 In case of unknown type the input is assumed to be `void*`.
 
-Two more assertion macros cover the common cases that are not a typed equality:
+Beyond equality, the `ATT_ASSERT_NE`, `ATT_ASSERT_LT`, `ATT_ASSERT_LE`, `ATT_ASSERT_GT` and
+`ATT_ASSERT_GE` macros compare with the other operators, accepting the same types and keeping the
+typed failure output (`Expected < 10, got 12`):
 
 ```c
-ATT_ASSERT_TRUE(strcmp(a, b) < 0, "a sorts before b");
+ATT_ASSERT_NE(errno, 0, "errno was set");
+ATT_ASSERT_LT(elapsed_ms, 100l, "fast enough");
+ATT_ASSERT_GE(count, 1u, "at least one result");
+```
+
+Strings compare lexicographically (via `strcmp`), so `ATT_ASSERT_LT("abc", "abd", ...)` passes.
+Floats keep the epsilon semantics for `NE` (values equal within the tolerance are not "not equal"),
+while `LT`/`LE`/`GT`/`GE` compare plainly. `void*`, `_Bool` and unknown types support only equality
+and inequality; the other operators fail with an `Operator < is not supported for this type`
+message.
+
+Two more assertion macros cover the common cases that are not a typed comparison:
+
+```c
+ATT_ASSERT_TRUE(is_valid(input), "input is valid");
 ATT_ASSERT_MEM(buffer, expected_buffer, sizeof(buffer), "buffers are equal");
 ```
 
@@ -65,20 +81,22 @@ byte by byte and, on failure, reports the offset and value of the first differin
 
 1. `ATT_ASSERT(value, expected, description)` you pass the value to test, the expected one and a
    description of the test.
-2. `ATT_ASSERT_TRUE(condition, description)` assert that a condition is true.
-3. `ATT_ASSERT_MEM(value, expected, size, description)` assert that two memory regions of `size`
+2. `ATT_ASSERT_NE/LT/LE/GT/GE(value, expected, description)` same as `ATT_ASSERT` but compare with
+   `!=`, `<`, `<=`, `>` or `>=`.
+3. `ATT_ASSERT_TRUE(condition, description)` assert that a condition is true.
+4. `ATT_ASSERT_MEM(value, expected, size, description)` assert that two memory regions of `size`
    bytes are equal.
-4. `int att_report(void)` print the `Tests valid/run: X/Y` summary and return `0` if every test
+5. `int att_report(void)` print the `Tests valid/run: X/Y` summary and return `0` if every test
    passed, `1` otherwise. Meant to be used as the return value of `main()`.
-5. `void att_set_verbose(unsigned int verbose)` set verbosity.
-6. `void att_set_show_error(unsigned int show_error)` set to show errors.
-7. `void att_set_generic_callback(att_generic_callback callback)` set a callback to run for generic
+6. `void att_set_verbose(unsigned int verbose)` set verbosity.
+7. `void att_set_show_error(unsigned int show_error)` set to show errors.
+8. `void att_set_generic_callback(att_generic_callback callback)` set a callback to run for generic
    tests
-8. `void att_set_test_callback(att_test_callback callback)` set a callback to call for all tests.
-9. `unsigned int att_get_valid_tests(void)` return the count of valid tests.
-10. `unsigned int att_get_total_tests(void)` return the count of run tests.
-11. `void att_set_float_epsilon(long double epsilon)` set the tolerance for float comparisons.
-12. `long double att_get_float_epsilon(void)` return the current float comparison tolerance.
+9. `void att_set_test_callback(att_test_callback callback)` set a callback to call for all tests.
+10. `unsigned int att_get_valid_tests(void)` return the count of valid tests.
+11. `unsigned int att_get_total_tests(void)` return the count of run tests.
+12. `void att_set_float_epsilon(long double epsilon)` set the tolerance for float comparisons.
+13. `long double att_get_float_epsilon(void)` return the current float comparison tolerance.
 
 ## Examples
 
@@ -211,12 +229,15 @@ typedef struct unknown_struct {
     int unknown;
 } unknown_struct;
 
-int assert_unknown(void* result, void* expected, const char *description) {
+int assert_unknown(void* result, void* expected, att_op op, const char *description) {
     if(!result || !expected) {
         return 0;
     }
 
-    return ((unknown_struct*)result)->unknown == ((unknown_struct*)expected)->unknown;
+    int equal = ((unknown_struct*)result)->unknown == ((unknown_struct*)expected)->unknown;
+
+    // The callback receives the operator, so ATT_ASSERT_NE works too
+    return op == ATT_OP_NE ? !equal : equal;
 }
 
 void test_unknown_callback() {

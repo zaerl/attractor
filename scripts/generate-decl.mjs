@@ -116,14 +116,14 @@ function fn_decl(type_info, unsigned, is_const) {
 
     const postfix = type_info.name.endsWith('*') ? '' : ' ';
 
-    return `\nATT_API unsigned int ${fn}(${type}${postfix}result, ${type}${postfix}expected, const char *description, const char *file, unsigned int line)`;
+    return `\nATT_API unsigned int ${fn}(${type}${postfix}result, ${type}${postfix}expected, att_op op, const char *description, const char *file, unsigned int line)`;
 }
 
 function fn_content(type_info, unsigned, is_const) {
-    let comparison = 'result == expected';
     const format = format_name(type_info, unsigned, true);
-    let s_format = '"%' + (type_info.name.endsWith('*') ? 'p' : format) + '"';
-    let type = '"' + type_name(type_info, unsigned) + '"';
+    const s_format = '"%' + (type_info.name.endsWith('*') ? 'p' : format) + '"';
+    const type = '"' + type_name(type_info, unsigned) + '"';
+    const name = type_info.name;
     let error_message = '';
 
     if(s_format === '"%c"') {
@@ -141,31 +141,55 @@ function fn_content(type_info, unsigned, is_const) {
             format_2 = "%c";
         }
 
-        ATT_ERROR_MESSAGE(result, format_1, format_2, expected);`;
+        ATT_ERROR_MESSAGE(result, format_1, format_2, expected, op);`;
     } else if(s_format === '"%p"' && format_name(type_info, unsigned) === 'c') {
-        error_message = `ATT_ERROR_MESSAGE(result, ATT_STRING_AS_POINTERS == 1 ? "%p" : "\\"%s\\"", ATT_STRING_AS_POINTERS == 1 ? "%p" : "\\"%s\\"", expected);`
-    }else {
-        error_message = `ATT_ERROR_MESSAGE(result, ${s_format}, ${s_format}, expected);`;
+        error_message = `ATT_ERROR_MESSAGE(result, ATT_STRING_AS_POINTERS == 1 ? "%p" : "\\"%s\\"", ATT_STRING_AS_POINTERS == 1 ? "%p" : "\\"%s\\"", expected, op);`
+    } else {
+        error_message = `ATT_ERROR_MESSAGE(result, ${s_format}, ${s_format}, expected, op);`;
     }
 
-    let description = ' description';
+    let body = '';
 
-    if(type_info.name === 'default') {
-        comparison = `
-        att_generic_callback_fn ? "callback" : "default",
-        att_generic_callback_fn ? att_generic_callback_fn(result, expected, description) : (result == expected)`;
-        description = '\n        description\n    ';
-    } else if(type_info.name === 'char *' || type_info.name === 'const char *') {
-        comparison = type + ', ((result == expected) || ((result && expected) ? strcmp(result, expected) == 0 : 0))';
-        s_format = 'ATT_STRING_AS_POINTERS == 1 ? "%p" : "\\"%s\\""';
-    } else if(type_info.name === 'float' || type_info.name === 'double' || type_info.name === 'long double') {
-        comparison = type + ', (result == expected) || ((result > expected ? result - expected : expected - result) <= att_float_epsilon)';
+    if(name === 'default') {
+        // Custom callbacks receive the operator; without a callback only EQ/NE
+        // are meaningful on an unknown type.
+        body = `    int test;
+
+    if(att_generic_callback_fn) {
+        test = att_assert("callback", att_generic_callback_fn(result, expected, op, description), description);
+    } else if(op != ATT_OP_EQ && op != ATT_OP_NE) {
+        return att_assert_op_unsupported(op, description, file, line);
     } else {
-        comparison = type + ', ' + comparison;
+        test = att_assert("default", op == ATT_OP_EQ ? result == expected : result != expected, description);
+    }`;
+    } else if(name === 'char *' || name === 'const char *') {
+        // Lexicographic comparison via strcmp. Relational operators on a NULL
+        // string always fail; EQ/NE fall back to pointer identity.
+        body = `    int test;
+
+    if(result && expected) {
+        test = ATT_COMPARE(strcmp(result, expected), 0, op);
+    } else {
+        test = op == ATT_OP_EQ ? result == expected : (op == ATT_OP_NE ? result != expected : 0);
+    }
+
+    test = att_assert(${type}, test, description);`;
+    } else if(name === 'float' || name === 'double' || name === 'long double') {
+        // EQ/NE honor the configured epsilon; the relational operators compare plainly.
+        body = `    int equal = (result == expected) || ((result > expected ? result - expected : expected - result) <= att_float_epsilon);
+    int test = att_assert(${type}, op == ATT_OP_EQ ? equal : (op == ATT_OP_NE ? !equal : ATT_COMPARE(result, expected, op)), description);`;
+    } else if(name === 'void *' || name === '_Bool') {
+        body = `    if(op != ATT_OP_EQ && op != ATT_OP_NE) {
+        return att_assert_op_unsupported(op, description, file, line);
+    }
+
+    int test = att_assert(${type}, op == ATT_OP_EQ ? result == expected : result != expected, description);`;
+    } else {
+        body = `    int test = att_assert(${type}, ATT_COMPARE(result, expected, op), description);`;
     }
 
     return fn_decl(type_info, unsigned, is_const) + ` {
-    int test = att_assert(${comparison},${description});
+${body}
 
     if(!test) {
         ${error_message}
@@ -221,16 +245,23 @@ let substitution = `
 
 // clang-format off
 #ifndef __cplusplus
-#define ATT_ASSERT(VALUE, EXPECTED, MESSAGE) \\
+#define ATT_ASSERT_OP(VALUE, EXPECTED, OP, MESSAGE) \\
     (att_set_assert_context(#VALUE, __FILE__, __LINE__), _Generic(VALUE, \\
     ATT_CUSTOM_TYPES \\
     ${generics.join(', \\\n    ')} \\
-)(VALUE, EXPECTED, MESSAGE, __FILE__, __LINE__))
+)(VALUE, EXPECTED, OP, MESSAGE, __FILE__, __LINE__))
 #else
-#define ATT_ASSERT(VALUE, EXPECTED, MESSAGE) \\
+#define ATT_ASSERT_OP(VALUE, EXPECTED, OP, MESSAGE) \\
     (att_set_assert_context(#VALUE, __FILE__, __LINE__), \\
-     att_assert_cpp(VALUE, EXPECTED, MESSAGE, __FILE__, __LINE__))
-#endif\n`;
+     att_assert_cpp(VALUE, EXPECTED, OP, MESSAGE, __FILE__, __LINE__))
+#endif
+
+#define ATT_ASSERT(VALUE, EXPECTED, MESSAGE) ATT_ASSERT_OP(VALUE, EXPECTED, ATT_OP_EQ, MESSAGE)
+#define ATT_ASSERT_NE(VALUE, EXPECTED, MESSAGE) ATT_ASSERT_OP(VALUE, EXPECTED, ATT_OP_NE, MESSAGE)
+#define ATT_ASSERT_LT(VALUE, EXPECTED, MESSAGE) ATT_ASSERT_OP(VALUE, EXPECTED, ATT_OP_LT, MESSAGE)
+#define ATT_ASSERT_LE(VALUE, EXPECTED, MESSAGE) ATT_ASSERT_OP(VALUE, EXPECTED, ATT_OP_LE, MESSAGE)
+#define ATT_ASSERT_GT(VALUE, EXPECTED, MESSAGE) ATT_ASSERT_OP(VALUE, EXPECTED, ATT_OP_GT, MESSAGE)
+#define ATT_ASSERT_GE(VALUE, EXPECTED, MESSAGE) ATT_ASSERT_OP(VALUE, EXPECTED, ATT_OP_GE, MESSAGE)\n`;
 
 substitution += decls.join(';');
 substitution += ';';
