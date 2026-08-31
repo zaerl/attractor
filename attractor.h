@@ -387,6 +387,7 @@ inline unsigned int att_assert_cpp(T *result, T *expected, att_op op, const char
             printf(FORMAT_2, RESULT); \
             fputs(att_show_colors ? "\x1B[0m\n\n" : "\n\n", stdout); \
         } \
+        fflush(stdout); \
     } while(0)
 
 // Evaluate the comparison selected by OP. Arguments are evaluated more than once.
@@ -802,6 +803,8 @@ static unsigned int att_assert_op_unsupported(att_op op, const char *description
         printf("Operator %s is not supported for this type\n\n", att_op_symbols[op]);
     }
 
+    fflush(stdout);
+
     return 0;
 }
 
@@ -845,6 +848,8 @@ ATT_API unsigned int att_assert_mem(const void *result, const void *expected, si
                     "Byte %zu: expected 0x%02X, got 0x%02X\n\n",
                 offset, exp[offset], res[offset]);
         }
+
+        fflush(stdout);
     }
 
     return test;
