@@ -5,6 +5,8 @@
  */
 
 #include "../attractor.h"
+#include <float.h>
+#include <math.h>
 #include <stdio.h>
 
 float float_0(float result) {
@@ -36,6 +38,46 @@ void *test_floats_epsilon(void *arg) {
 
     att_set_float_epsilon(0);
     ATT_ASSERT(att_get_float_epsilon() == 0, 1, "epsilon reset to 0");
+
+    return NULL;
+}
+
+void *test_floats_edge(void *arg) {
+    double nan_v = NAN;
+    double inf_v = INFINITY;
+
+    ATT_ASSERT_NE(nan_v, nan_v, "NaN != NaN");
+    ATT_ASSERT_NE(nan_v, 1.0, "NaN != 1.0");
+
+    ATT_ASSERT(inf_v, inf_v, "inf = inf");
+    ATT_ASSERT_NE(-inf_v, inf_v, "-inf != inf");
+    ATT_ASSERT_NE(inf_v, DBL_MAX, "inf != DBL_MAX");
+
+    ATT_ASSERT(0.0, -0.0, "0.0 = -0.0");
+
+    att_set_float_epsilon(1e9);
+    ATT_ASSERT_NE(nan_v, nan_v, "NaN != NaN with epsilon");
+    ATT_ASSERT(inf_v, inf_v, "inf = inf with epsilon");
+    ATT_ASSERT_NE(inf_v, 1.0, "inf != 1.0 with epsilon");
+    ATT_ASSERT_NE(DBL_MAX, -DBL_MAX, "DBL_MAX != -DBL_MAX with epsilon");
+    att_set_float_epsilon(0);
+
+    att_set_float_epsilon(0.5);
+    ATT_ASSERT(1.0, 1.5, "diff of exactly epsilon is equal");
+    ATT_ASSERT_NE(1.0, 1.75, "diff beyond epsilon is not equal");
+    att_set_float_epsilon(0);
+
+    float nan_f = NAN;
+    float inf_f = INFINITY;
+
+    ATT_ASSERT_NE(nan_f, nan_f, "float NaN != NaN");
+    ATT_ASSERT(inf_f, inf_f, "float inf = inf");
+
+    long double nan_l = NAN;
+    long double inf_l = INFINITY;
+
+    ATT_ASSERT_NE(nan_l, nan_l, "long double NaN != NaN");
+    ATT_ASSERT(inf_l, inf_l, "long double inf = inf");
 
     return NULL;
 }

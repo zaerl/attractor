@@ -50,7 +50,10 @@ extern "C" {
 #endif
 
 // Tolerance for float, double and long double comparisons. Defaults to 0 (exact equality). Define a
-// small value (e.g. 1e-6) to compare within an epsilon.
+// small value (e.g. 1e-6) to compare within an epsilon. The tolerance is absolute
+// (|result - expected| <= epsilon), so pick it for the magnitude of the values under test: an
+// epsilon suited to values near 1.0 is too strict for very large values and too lax for very
+// small ones.
 #ifndef ATT_FLOAT_EPSILON
 #define ATT_FLOAT_EPSILON 0
 #endif
@@ -155,6 +158,7 @@ void att_set_show_error(unsigned int show_error);
 
 // Tolerance used for float, double and long double comparisons. Initialized to
 // ATT_FLOAT_EPSILON (0 by default, i.e. exact equality) and overridable at runtime.
+// The tolerance is absolute, not relative to the magnitude of the compared values.
 long double att_get_float_epsilon(void);
 void att_set_float_epsilon(long double epsilon);
 
@@ -638,7 +642,7 @@ ATT_API unsigned int att_assert_f(float result, float expected, att_op op, const
     int test = att_assert("float", op == ATT_OP_EQ ? equal : (op == ATT_OP_NE ? !equal : ATT_COMPARE(result, expected, op)), description);
 
     if(!test) {
-        ATT_ERROR_MESSAGE(result, "%f", "%f", expected, op);
+        ATT_ERROR_MESSAGE(result, "%.9g", "%.9g", expected, op);
     }
 
     return test;
@@ -649,7 +653,7 @@ ATT_API unsigned int att_assert_lf(double result, double expected, att_op op, co
     int test = att_assert("double", op == ATT_OP_EQ ? equal : (op == ATT_OP_NE ? !equal : ATT_COMPARE(result, expected, op)), description);
 
     if(!test) {
-        ATT_ERROR_MESSAGE(result, "%lf", "%lf", expected, op);
+        ATT_ERROR_MESSAGE(result, "%.17g", "%.17g", expected, op);
     }
 
     return test;
@@ -660,7 +664,7 @@ ATT_API unsigned int att_assert_Lf(long double result, long double expected, att
     int test = att_assert("long double", op == ATT_OP_EQ ? equal : (op == ATT_OP_NE ? !equal : ATT_COMPARE(result, expected, op)), description);
 
     if(!test) {
-        ATT_ERROR_MESSAGE(result, "%Lf", "%Lf", expected, op);
+        ATT_ERROR_MESSAGE(result, "%.21Lg", "%.21Lg", expected, op);
     }
 
     return test;

@@ -37,15 +37,18 @@ const types = [
     }, {
         name: 'float',
         signed: true,
-        formats: [ 'f' ]
+        formats: [ 'f' ],
+        error_formats: [ '.9g' ]
     }, {
         name: 'double',
         signed: true,
-        formats: [ 'lf' ]
+        formats: [ 'lf' ],
+        error_formats: [ '.17g' ]
     }, {
         name: 'long double',
         signed: true,
-        formats: [ 'Lf' ]
+        formats: [ 'Lf' ],
+        error_formats: [ '.21Lg' ]
     }, {
         name: 'void',
         ptr: true,
@@ -121,7 +124,10 @@ function fn_decl(type_info, unsigned, is_const) {
 
 function fn_content(type_info, unsigned, is_const) {
     const format = format_name(type_info, unsigned, true);
-    const s_format = '"%' + (type_info.name.endsWith('*') ? 'p' : format) + '"';
+    const e_format = type_info.error_formats ?
+        type_info.error_formats[unsigned ? 1 : 0] :
+        (type_info.name.endsWith('*') ? 'p' : format);
+    const s_format = '"%' + e_format + '"';
     const type = '"' + type_name(type_info, unsigned) + '"';
     const name = type_info.name;
     let error_message = '';
