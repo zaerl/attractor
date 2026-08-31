@@ -97,6 +97,7 @@ byte by byte and, on failure, reports the offset and value of the first differin
 11. `unsigned int att_get_total_tests(void)` return the count of run tests.
 12. `void att_set_float_epsilon(long double epsilon)` set the tolerance for float comparisons.
 13. `long double att_get_float_epsilon(void)` return the current float comparison tolerance.
+14. `void att_set_tap(unsigned int tap)` enable TAP (Test Anything Protocol) output.
 
 ## Examples
 
@@ -216,6 +217,21 @@ you can also change the tolerance at runtime, the same way you change verbosity:
 att_set_float_epsilon(1e-6);
 ATT_ASSERT(0.1 + 0.2, 0.3, "sum within epsilon");
 att_set_float_epsilon(0); // back to exact equality
+```
+
+### TAP output
+
+For machine-readable output, enable TAP (Test Anything Protocol) mode with `#define ATT_TAP 1` or
+`att_set_tap(1)`. It replaces the dot/OK reporting: every assertion prints an `ok N - description`
+or `not ok N - description` line, error details become `# ` diagnostic lines, and `att_report()`
+emits the trailing `1..N` plan. The output plugs directly into `prove` and other TAP harnesses:
+
+```
+ok 1 - one == one
+not ok 2 - 2.0 == 2.5
+# example.c:12: Expected 2.5, got 2
+1..2
+# Tests valid/run: 1/2
 ```
 
 ### Custom callback

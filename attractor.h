@@ -49,6 +49,11 @@ extern "C" {
 #define ATT_SHOW_ERROR 1
 #endif
 
+// Emit TAP (Test Anything Protocol) output.
+#ifndef ATT_TAP
+#define ATT_TAP 0
+#endif
+
 // Tolerance for float, double and long double comparisons. Defaults to 0 (exact equality). Define a
 // small value (e.g. 1e-6) to compare within an epsilon. The tolerance is absolute
 // (|result - expected| <= epsilon), so pick it for the magnitude of the values under test: an
@@ -155,6 +160,7 @@ int att_report(void);
 
 void att_set_verbose(unsigned int verbose);
 void att_set_show_error(unsigned int show_error);
+void att_set_tap(unsigned int tap);
 
 // Tolerance used for float, double and long double comparisons. Initialized to
 // ATT_FLOAT_EPSILON (0 by default, i.e. exact equality) and overridable at runtime.
@@ -375,8 +381,11 @@ inline unsigned int att_assert_cpp(T *result, T *expected, att_op op, const char
 #define ATT_ERROR_MESSAGE(RESULT, FORMAT_1, FORMAT_2, EXPECTED, OP) \
     do { \
         if(att_show_error) { \
+            if(att_tap) { \
+                fputs("# ", stdout); \
+            } \
             printf(att_show_colors ? "\x1B[90m%s:%u:\x1B[0m " : "%s:%u: ", file, line); \
-            if(att_verbose < 2) { \
+            if(att_verbose < 2 && !att_tap) { \
                 printf("%s: ", description); \
             } \
             fputs("Expected ", stdout); \
@@ -410,6 +419,7 @@ static att_atomic_uint att_valid_tests = 0;
 static att_atomic_uint att_total_tests = 0;
 static unsigned int att_verbose = ATT_VERBOSE;
 static unsigned int att_show_error = ATT_SHOW_ERROR;
+static unsigned int att_tap = ATT_TAP;
 static int att_show_colors = 0;
 static long double att_float_epsilon = ATT_FLOAT_EPSILON;
 
@@ -438,6 +448,10 @@ void att_set_verbose(unsigned int verbose) {
 
 void att_set_show_error(unsigned int show_error) {
     att_show_error = show_error;
+}
+
+void att_set_tap(unsigned int tap) {
+    att_tap = tap;
 }
 
 long double att_get_float_epsilon(void) {
@@ -718,9 +732,11 @@ ATT_API unsigned int att_assert_unknown(void * result, void * expected, att_op o
 
 // clang-format on
 int att_assert(const char *format, int test, const char *description) {
+    unsigned int index = ATT_FETCH_INCREMENT(att_total_tests);
+
     // Initialize the library on the first assertion. The fetch-increment returns the
     // previous value atomically, so exactly one thread observes zero here.
-    if(ATT_FETCH_INCREMENT(att_total_tests) == 0) {
+    if(index == 0) {
         if(isatty(STDOUT_FILENO)) {
             const char *no_color = getenv("NO_COLOR");
 
@@ -774,7 +790,9 @@ int att_assert(const char *format, int test, const char *description) {
             att_assert_line);
     }
 
-    if(att_verbose == 0) {
+    if(att_tap) {
+        printf(test ? "ok %u - %s\n" : "not ok %u - %s\n", index + 1, description);
+    } else if(att_verbose == 0) {
         // Do nothing
     } else if(att_verbose == 1) {
         fputs(test ? "." : (att_show_colors ? "\x1B[31mF\x1B[0m" : "F"), stdout);
@@ -798,9 +816,13 @@ static unsigned int att_assert_op_unsupported(att_op op, const char *description
     att_assert("unsupported", 0, description);
 
     if(att_show_error) {
+        if(att_tap) {
+            fputs("# ", stdout);
+        }
+
         printf(att_show_colors ? "\x1B[90m%s:%u:\x1B[0m " : "%s:%u: ", file, line);
 
-        if(att_verbose < 2) {
+        if(att_verbose < 2 && !att_tap) {
             printf("%s: ", description);
         }
 
@@ -841,9 +863,13 @@ ATT_API unsigned int att_assert_mem(const void *result, const void *expected, si
                 ++offset;
             }
 
+            if(att_tap) {
+                fputs("# ", stdout);
+            }
+
             printf(att_show_colors ? "\x1B[90m%s:%u:\x1B[0m " : "%s:%u: ", file, line);
 
-            if(att_verbose < 2) {
+            if(att_verbose < 2 && !att_tap) {
                 printf("%s: ", description);
             }
 
@@ -863,6 +889,13 @@ int att_report(void) {
     unsigned int total = (unsigned int)att_total_tests;
     unsigned int valid = (unsigned int)att_valid_tests;
     int all_valid = valid == total;
+
+    if(att_tap) {
+        // A trailing plan is valid TAP and avoids knowing the test count upfront.
+        printf("1..%u\n# Tests valid/run: %u/%u\n", total, valid, total);
+
+        return all_valid ? 0 : 1;
+    }
 
     // The dots printed with verbose = 1 leave the line unterminated.
     if(att_verbose == 1 && total > 0) {
