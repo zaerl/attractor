@@ -247,7 +247,8 @@ inline unsigned int att_assert_cpp(T1 result, T2 expected, att_op op, const char
         } else if constexpr(std::is_same_v<common_type, bool>) {
             return att_assert_b(converted_result, converted_expected, op, description, file, line);
         } else if constexpr(std::is_same_v<common_type, std::string>) {
-            return att_assert_cp_c(result.c_str(), expected.c_str(), op, description, file, line);
+            return att_assert_cp_c(converted_result.c_str(), converted_expected.c_str(), op,
+                description, file, line);
         } else {
             // Unsupported type with common_type - compile error
             static_assert(sizeof(T1) == 0,
@@ -332,11 +333,23 @@ inline unsigned int att_assert_cpp(const char *result, char *expected, att_op op
     return att_assert_cp_c(result, expected, op, description, file, line);
 }
 
-// Generic pointer type catch-all (for any pointer types not covered by specific overloads)
-template <typename T>
-inline unsigned int att_assert_cpp(T *result, T *expected, att_op op, const char *description,
+template <typename T1, typename T2>
+inline unsigned int att_assert_cpp(T1 *result, T2 *expected, att_op op, const char *description,
     const char *file, unsigned int line) {
     return att_assert_unknown((void *)result, (void *)expected, op, description, file, line);
+}
+
+template <typename T>
+inline unsigned int att_assert_cpp(T *result, std::nullptr_t, att_op op, const char *description,
+    const char *file, unsigned int line) {
+    return att_assert_unknown((void *)result, nullptr, op, description, file, line);
+}
+
+template <typename T>
+inline unsigned int att_assert_cpp(T *result, long expected, att_op op, const char *description,
+    const char *file, unsigned int line) {
+    return att_assert_unknown((void *)result, att_pointer_from_long<void>(expected), op,
+        description, file, line);
 }
 #endif
 

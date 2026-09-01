@@ -24,6 +24,11 @@ void *test_strings(void *arg) {
     ATT_ASSERT((char*)NULL, NULL, "NULL");
 #ifdef __cplusplus
     ATT_ASSERT((char*)nullptr, nullptr, "nullptr");
+
+    std::string cpp_str = "quux";
+    ATT_ASSERT(cpp_str, std::string("quux"), "std::string = std::string");
+    ATT_ASSERT(cpp_str, "quux", "std::string = literal");
+    ATT_ASSERT(cstr, std::string("qux"), "Const char pointer = std::string");
 #endif
 
     return NULL;

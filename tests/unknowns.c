@@ -33,6 +33,15 @@ void *test_unknowns(void *arg) {
 
     ATT_ASSERT(&sa, &sa, "Unknown struct sa = sa");
 
+    // Mixed pointer types and NULL comparisons take the same unknown-type path in C (_Generic
+    // default) and C++ (generic pointer overloads).
+    int other = 0;
+    ATT_ASSERT_NE(&sa, &other, "Unknown struct sa != int pointer");
+    ATT_ASSERT_NE(&sa, NULL, "Unknown struct sa != NULL");
+#ifdef __cplusplus
+    ATT_ASSERT_NE(&sa, nullptr, "Unknown struct sa != nullptr");
+#endif
+
     sa.unknown = 1;
     sb.unknown = 1;
 
