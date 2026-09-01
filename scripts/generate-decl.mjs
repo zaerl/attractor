@@ -244,44 +244,23 @@ for(const type_info of types) {
 }
 
 let file_content = readFileSync('./attractor.h', 'utf-8');
-let substitution = `
-#ifndef ATT_CUSTOM_TYPES
-#define ATT_CUSTOM_TYPES
-#endif
 
-// clang-format off
-#ifndef __cplusplus
-#define ATT_ASSERT_OP(VALUE, EXPECTED, OP, MESSAGE) \\
-    (att_set_assert_context(#VALUE, __FILE__, __LINE__), _Generic(VALUE, \\
-    ATT_CUSTOM_TYPES \\
-    ${generics.join(', \\\n    ')} \\
-)(VALUE, EXPECTED, OP, MESSAGE, __FILE__, __LINE__))
-#else
-#define ATT_ASSERT_OP(VALUE, EXPECTED, OP, MESSAGE) \\
-    (att_set_assert_context(#VALUE, __FILE__, __LINE__), \\
-     att_assert_cpp(VALUE, EXPECTED, OP, MESSAGE, __FILE__, __LINE__))
-#endif
-
-#define ATT_ASSERT(VALUE, EXPECTED, MESSAGE) ATT_ASSERT_OP(VALUE, EXPECTED, ATT_OP_EQ, MESSAGE)
-#define ATT_ASSERT_NE(VALUE, EXPECTED, MESSAGE) ATT_ASSERT_OP(VALUE, EXPECTED, ATT_OP_NE, MESSAGE)
-#define ATT_ASSERT_LT(VALUE, EXPECTED, MESSAGE) ATT_ASSERT_OP(VALUE, EXPECTED, ATT_OP_LT, MESSAGE)
-#define ATT_ASSERT_LE(VALUE, EXPECTED, MESSAGE) ATT_ASSERT_OP(VALUE, EXPECTED, ATT_OP_LE, MESSAGE)
-#define ATT_ASSERT_GT(VALUE, EXPECTED, MESSAGE) ATT_ASSERT_OP(VALUE, EXPECTED, ATT_OP_GT, MESSAGE)
-#define ATT_ASSERT_GE(VALUE, EXPECTED, MESSAGE) ATT_ASSERT_OP(VALUE, EXPECTED, ATT_OP_GE, MESSAGE)\n`;
-
-substitution += decls.join(';');
-substitution += ';';
-
-// Declarations and the ATT_ASSERT macro
+// Declarations of the ATT_ASSERT_OP macro.
 file_content = substitute_text(
-    file_content, "#define ATT_STRING_AS_POINTERS 0\n#endif\n",
+    file_content, "ATT_CUSTOM_TYPES \\\n    ",
+    ")(VALUE, EXPECTED, OP, MESSAGE, __FILE__, __LINE__))",
+    generics.join(', \\\n    ') + ' \\\n');
+
+// Declarations of the functions list.
+file_content = substitute_text(
+    file_content, "// This functions list is automatically generated. Do not edit.",
     "\n\nunsigned int att_get_valid_tests(void);",
-    substitution);
+    decls.join(';') + ';');
 
 // Function bodies in the ATT_IMPLEMENTATION section
 file_content = substitute_text(
-    file_content, "int att_assert(const char *type, int test, const char *description);\n",
-    "\n\n// clang-format on",
+    file_content, "// These functions are automatically generated. Do not edit.",
+    "\n#endif /* ATT_IMPLEMENTATION_INCLUDED */",
     contents.join('\n'));
 
 writeFileSync('./attractor.h', file_content);

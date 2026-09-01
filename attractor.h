@@ -83,6 +83,7 @@ typedef enum att_op {
 
 // clang-format off
 #ifndef __cplusplus
+// This macro is automatically generated. Do not edit.
 #define ATT_ASSERT_OP(VALUE, EXPECTED, OP, MESSAGE) \
     (att_set_assert_context(#VALUE, __FILE__, __LINE__), _Generic(VALUE, \
     ATT_CUSTOM_TYPES \
@@ -118,6 +119,7 @@ typedef enum att_op {
 #define ATT_ASSERT_GT(VALUE, EXPECTED, MESSAGE) ATT_ASSERT_OP(VALUE, EXPECTED, ATT_OP_GT, MESSAGE)
 #define ATT_ASSERT_GE(VALUE, EXPECTED, MESSAGE) ATT_ASSERT_OP(VALUE, EXPECTED, ATT_OP_GE, MESSAGE)
 
+// This functions list is automatically generated. Do not edit.
 ATT_API unsigned int att_assert_c(char result, char expected, att_op op, const char *description, const char *file, unsigned int line);
 ATT_API unsigned int att_assert_u_c(unsigned char result, unsigned char expected, att_op op, const char *description, const char *file, unsigned int line);
 ATT_API unsigned int att_assert_p_c(char *result, char *expected, att_op op, const char *description, const char *file, unsigned int line);
@@ -476,15 +478,190 @@ void att_set_assert_context(const char *expression, const char *file, unsigned i
     att_assert_line = line;
 }
 
-// Report a failure for an operator that a type does not implement (e.g. < on void*). Defined below,
-// after att_assert.
+// Base function for assertions. Returns 1 if the test passed, 0 if it failed.
+int att_assert(const char *format, int test, const char *description) {
+    unsigned int index = ATT_FETCH_INCREMENT(att_total_tests);
+
+    // Initialize the library on the first assertion. The fetch-increment returns the
+    // previous value atomically, so exactly one thread observes zero here.
+    if(index == 0) {
+        if(isatty(STDOUT_FILENO)) {
+            const char *no_color = getenv("NO_COLOR");
+
+#ifdef _WIN32
+            // On Windows, the TERM env is usually not set, so enable colors by default if NO_COLOR
+            // is not set
+            att_show_colors = no_color == NULL;
+#else
+            // On Unix, check TERM environment variable
+            const char *term = getenv("TERM");
+            att_show_colors = no_color == NULL && term != NULL && strcmp(term, "dumb") != 0;
+#endif
+        }
+
+#ifdef _WIN32
+        if(att_show_colors) {
+            // On Windows, we need to enable ANSI escape codes for stdout and stderr
+            HANDLE h_out = GetStdHandle(STD_OUTPUT_HANDLE);
+            HANDLE h_err = GetStdHandle(STD_ERROR_HANDLE);
+            DWORD mode_out, mode_err;
+
+            // Enable ANSI escape codes for stdout
+            if(h_out != INVALID_HANDLE_VALUE && GetConsoleMode(h_out, &mode_out)) {
+                mode_out |= ENABLE_VIRTUAL_TERMINAL_PROCESSING;
+
+                if(!SetConsoleMode(h_out, mode_out)) {
+                    // If we can't enable ANSI codes, disable colors
+                    att_show_colors = 0;
+                }
+            } else {
+                // If we can't get console mode, disable colors
+                att_show_colors = 0;
+            }
+
+            // Enable ANSI escape codes for stderr
+            if(att_show_colors && h_err != INVALID_HANDLE_VALUE &&
+                GetConsoleMode(h_err, &mode_err)) {
+                mode_err |= ENABLE_VIRTUAL_TERMINAL_PROCESSING;
+                SetConsoleMode(h_err, mode_err);
+            }
+        }
+#endif
+    }
+
+    if(test) {
+        ATT_FETCH_INCREMENT(att_valid_tests);
+    }
+
+    if(att_test_callback_fn) {
+        att_test_callback_fn(test, description, att_assert_expression, att_assert_file,
+            att_assert_line);
+    }
+
+    if(att_tap) {
+        printf(test ? "ok %u - %s\n" : "not ok %u - %s\n", index + 1, description);
+    } else if(att_verbose == 0) {
+        // Do nothing
+    } else if(att_verbose == 1) {
+        fputs(test ? "." : (att_show_colors ? "\x1B[31mF\x1B[0m" : "F"), stdout);
+
+        if(!test) {
+            fputs("\n", stdout);
+        }
+    } else {
+        const char *ok = att_show_colors ? "\x1B[32mOK\x1B[0m" : "OK";
+        const char *fail = att_show_colors ? "\x1B[31mNO\x1B[0m" : "NO";
+
+        printf(att_show_colors ? "%s [\x1b[36m%s\x1b[0m] %s\n" : "%s [%s] %s\n", test ? ok : fail,
+            format, description);
+    }
+
+    return test;
+}
+
+// Returns 0 and prints an error message for unsupported operators.
 static unsigned int att_assert_op_unsupported(att_op op, const char *description, const char *file,
-    unsigned int line);
+    unsigned int line) {
+    att_assert("unsupported", 0, description);
+
+    if(att_show_error) {
+        if(att_tap) {
+            fputs("# ", stdout);
+        }
+
+        printf(att_show_colors ? "\x1B[90m%s:%u:\x1B[0m " : "%s:%u: ", file, line);
+
+        if(att_verbose < 2 && !att_tap) {
+            printf("%s: ", description);
+        }
+
+        printf("Operator %s is not supported for this type\n\n", att_op_symbols[op]);
+    }
+
+    fflush(stdout);
+
+    return 0;
+}
+
+// Custom assertion functions for ATT_ASSERT_TRUE.
+ATT_API unsigned int att_assert_true(int result, const char *description, const char *file,
+    unsigned int line) {
+    int test = att_assert("true", result != 0, description);
+
+    if(!test) {
+        ATT_ERROR_MESSAGE("false", "%s", "%s", "true", ATT_OP_EQ);
+    }
+
+    return test;
+}
+
+// Custom assertion functions for ATT_ASSERT_MEM.
+ATT_API unsigned int att_assert_mem(const void *result, const void *expected, size_t size,
+    const char *description, const char *file, unsigned int line) {
+    int test = att_assert("memory",
+        (result == expected) || (result && expected && memcmp(result, expected, size) == 0),
+        description);
+
+    if(!test) {
+        if(!result || !expected) {
+            ATT_ERROR_MESSAGE((void *)result, "%p", "%p", (void *)expected, ATT_OP_EQ);
+        } else if(att_show_error) {
+            const unsigned char *res = (const unsigned char *)result;
+            const unsigned char *exp = (const unsigned char *)expected;
+            size_t offset = 0;
+
+            while(offset < size && res[offset] == exp[offset]) {
+                ++offset;
+            }
+
+            if(att_tap) {
+                fputs("# ", stdout);
+            }
+
+            printf(att_show_colors ? "\x1B[90m%s:%u:\x1B[0m " : "%s:%u: ", file, line);
+
+            if(att_verbose < 2 && !att_tap) {
+                printf("%s: ", description);
+            }
+
+            printf(att_show_colors ?
+                    "Byte %zu: expected \x1B[32m0x%02X\x1B[0m, got \x1B[31m0x%02X\x1B[0m\n\n" :
+                    "Byte %zu: expected 0x%02X, got 0x%02X\n\n",
+                offset, exp[offset], res[offset]);
+        }
+
+        fflush(stdout);
+    }
+
+    return test;
+}
+
+int att_report(void) {
+    unsigned int total = (unsigned int)att_total_tests;
+    unsigned int valid = (unsigned int)att_valid_tests;
+    int all_valid = valid == total;
+
+    if(att_tap) {
+        // A trailing plan is valid TAP and avoids knowing the test count upfront.
+        printf("1..%u\n# Tests valid/run: %u/%u\n", total, valid, total);
+
+        return all_valid ? 0 : 1;
+    }
+
+    // The dots printed with verbose = 1 leave the line unterminated.
+    if(att_verbose == 1 && total > 0) {
+        fputs("\n", stdout);
+    }
+
+    printf(att_show_colors ? (all_valid ? "Tests valid/run: \x1B[32m%u/%u\x1B[0m\n" :
+                                          "Tests valid/run: \x1B[31m%u/%u\x1B[0m\n") :
+                             "Tests valid/run: %u/%u\n",
+        valid, total);
+
+    return all_valid ? 0 : 1;
+}
 
 // These functions are automatically generated. Do not edit.
-// clang-format off
-int att_assert(const char *type, int test, const char *description);
-
 ATT_API unsigned int att_assert_c(char result, char expected, att_op op, const char *description, const char *file, unsigned int line) {
     int test = att_assert("char", ATT_COMPARE(result, expected, op), description);
 
@@ -729,186 +906,5 @@ ATT_API unsigned int att_assert_unknown(void * result, void * expected, att_op o
 
     return test;
 }
-
-// clang-format on
-int att_assert(const char *format, int test, const char *description) {
-    unsigned int index = ATT_FETCH_INCREMENT(att_total_tests);
-
-    // Initialize the library on the first assertion. The fetch-increment returns the
-    // previous value atomically, so exactly one thread observes zero here.
-    if(index == 0) {
-        if(isatty(STDOUT_FILENO)) {
-            const char *no_color = getenv("NO_COLOR");
-
-#ifdef _WIN32
-            // On Windows, the TERM env is usually not set, so enable colors by default if NO_COLOR
-            // is not set
-            att_show_colors = no_color == NULL;
-#else
-            // On Unix, check TERM environment variable
-            const char *term = getenv("TERM");
-            att_show_colors = no_color == NULL && term != NULL && strcmp(term, "dumb") != 0;
-#endif
-        }
-
-#ifdef _WIN32
-        if(att_show_colors) {
-            // On Windows, we need to enable ANSI escape codes for stdout and stderr
-            HANDLE h_out = GetStdHandle(STD_OUTPUT_HANDLE);
-            HANDLE h_err = GetStdHandle(STD_ERROR_HANDLE);
-            DWORD mode_out, mode_err;
-
-            // Enable ANSI escape codes for stdout
-            if(h_out != INVALID_HANDLE_VALUE && GetConsoleMode(h_out, &mode_out)) {
-                mode_out |= ENABLE_VIRTUAL_TERMINAL_PROCESSING;
-
-                if(!SetConsoleMode(h_out, mode_out)) {
-                    // If we can't enable ANSI codes, disable colors
-                    att_show_colors = 0;
-                }
-            } else {
-                // If we can't get console mode, disable colors
-                att_show_colors = 0;
-            }
-
-            // Enable ANSI escape codes for stderr
-            if(att_show_colors && h_err != INVALID_HANDLE_VALUE &&
-                GetConsoleMode(h_err, &mode_err)) {
-                mode_err |= ENABLE_VIRTUAL_TERMINAL_PROCESSING;
-                SetConsoleMode(h_err, mode_err);
-            }
-        }
-#endif
-    }
-
-    if(test) {
-        ATT_FETCH_INCREMENT(att_valid_tests);
-    }
-
-    if(att_test_callback_fn) {
-        att_test_callback_fn(test, description, att_assert_expression, att_assert_file,
-            att_assert_line);
-    }
-
-    if(att_tap) {
-        printf(test ? "ok %u - %s\n" : "not ok %u - %s\n", index + 1, description);
-    } else if(att_verbose == 0) {
-        // Do nothing
-    } else if(att_verbose == 1) {
-        fputs(test ? "." : (att_show_colors ? "\x1B[31mF\x1B[0m" : "F"), stdout);
-
-        if(!test) {
-            fputs("\n", stdout);
-        }
-    } else {
-        const char *ok = att_show_colors ? "\x1B[32mOK\x1B[0m" : "OK";
-        const char *fail = att_show_colors ? "\x1B[31mNO\x1B[0m" : "NO";
-
-        printf(att_show_colors ? "%s [\x1b[36m%s\x1b[0m] %s\n" : "%s [%s] %s\n", test ? ok : fail,
-            format, description);
-    }
-
-    return test;
-}
-
-static unsigned int att_assert_op_unsupported(att_op op, const char *description, const char *file,
-    unsigned int line) {
-    att_assert("unsupported", 0, description);
-
-    if(att_show_error) {
-        if(att_tap) {
-            fputs("# ", stdout);
-        }
-
-        printf(att_show_colors ? "\x1B[90m%s:%u:\x1B[0m " : "%s:%u: ", file, line);
-
-        if(att_verbose < 2 && !att_tap) {
-            printf("%s: ", description);
-        }
-
-        printf("Operator %s is not supported for this type\n\n", att_op_symbols[op]);
-    }
-
-    fflush(stdout);
-
-    return 0;
-}
-
-ATT_API unsigned int att_assert_true(int result, const char *description, const char *file,
-    unsigned int line) {
-    int test = att_assert("true", result != 0, description);
-
-    if(!test) {
-        ATT_ERROR_MESSAGE("false", "%s", "%s", "true", ATT_OP_EQ);
-    }
-
-    return test;
-}
-
-ATT_API unsigned int att_assert_mem(const void *result, const void *expected, size_t size,
-    const char *description, const char *file, unsigned int line) {
-    int test = att_assert("memory",
-        (result == expected) || (result && expected && memcmp(result, expected, size) == 0),
-        description);
-
-    if(!test) {
-        if(!result || !expected) {
-            ATT_ERROR_MESSAGE((void *)result, "%p", "%p", (void *)expected, ATT_OP_EQ);
-        } else if(att_show_error) {
-            const unsigned char *res = (const unsigned char *)result;
-            const unsigned char *exp = (const unsigned char *)expected;
-            size_t offset = 0;
-
-            while(offset < size && res[offset] == exp[offset]) {
-                ++offset;
-            }
-
-            if(att_tap) {
-                fputs("# ", stdout);
-            }
-
-            printf(att_show_colors ? "\x1B[90m%s:%u:\x1B[0m " : "%s:%u: ", file, line);
-
-            if(att_verbose < 2 && !att_tap) {
-                printf("%s: ", description);
-            }
-
-            printf(att_show_colors ?
-                    "Byte %zu: expected \x1B[32m0x%02X\x1B[0m, got \x1B[31m0x%02X\x1B[0m\n\n" :
-                    "Byte %zu: expected 0x%02X, got 0x%02X\n\n",
-                offset, exp[offset], res[offset]);
-        }
-
-        fflush(stdout);
-    }
-
-    return test;
-}
-
-int att_report(void) {
-    unsigned int total = (unsigned int)att_total_tests;
-    unsigned int valid = (unsigned int)att_valid_tests;
-    int all_valid = valid == total;
-
-    if(att_tap) {
-        // A trailing plan is valid TAP and avoids knowing the test count upfront.
-        printf("1..%u\n# Tests valid/run: %u/%u\n", total, valid, total);
-
-        return all_valid ? 0 : 1;
-    }
-
-    // The dots printed with verbose = 1 leave the line unterminated.
-    if(att_verbose == 1 && total > 0) {
-        fputs("\n", stdout);
-    }
-
-    printf(att_show_colors ? (all_valid ? "Tests valid/run: \x1B[32m%u/%u\x1B[0m\n" :
-                                          "Tests valid/run: \x1B[31m%u/%u\x1B[0m\n") :
-                             "Tests valid/run: %u/%u\n",
-        valid, total);
-
-    return all_valid ? 0 : 1;
-}
-
 #endif /* ATT_IMPLEMENTATION_INCLUDED */
 #endif /* ATT_IMPLEMENTATION */
