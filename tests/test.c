@@ -4,53 +4,43 @@
  * This file is distributed under the MIT License. See LICENSE for details.
  */
 
-#include <pthread.h>
 #include <stdio.h>
+#include <string.h>
 #include <time.h>
 
-// The single translation unit that carries the library implementation.
+// The single translation unit that carries the library implementation. The test
+// cases live in the other tests/*.c files and register themselves via ATT_TEST.
 #define ATT_IMPLEMENTATION
 #include "../attractor.h"
-
-#define DECLARE_TEST(NAME) void *test_##NAME(void *arg);
-
-DECLARE_TEST(asserts)
-DECLARE_TEST(chars)
-DECLARE_TEST(callback)
-DECLARE_TEST(custom)
-DECLARE_TEST(floats)
-DECLARE_TEST(floats_epsilon)
-DECLARE_TEST(floats_edge)
-DECLARE_TEST(integers)
-DECLARE_TEST(ops)
-DECLARE_TEST(strings)
-DECLARE_TEST(voids)
-DECLARE_TEST(unknowns)
 
 int main(int argc, const char *argv[]) {
     struct timespec start, end;
     double elapsed;
+    const char *filter = NULL;
+    int i;
+
+    for(i = 1; i < argc; ++i) {
+        const char *arg = argv[i];
+
+        if(strcmp(arg, "--list") == 0 || strcmp(arg, "-l") == 0) {
+            const char *name;
+            unsigned int index = 0;
+
+            while((name = att_get_test_name(index++)) != NULL) {
+                puts(name);
+            }
+
+            return 0;
+        } else if((strcmp(arg, "--filter") == 0 || strcmp(arg, "-f") == 0) && i + 1 < argc) {
+            filter = argv[++i];
+        } else if(strncmp(arg, "--filter=", 9) == 0) {
+            filter = arg + 9;
+        }
+    }
 
     clock_gettime(CLOCK_MONOTONIC, &start);
-    att_set_verbose(2);
-
-    #define RUN_TEST(NAME) \
-        pthread_t thread_##NAME; \
-        pthread_create(&thread_##NAME, NULL, test_##NAME, NULL); \
-        pthread_join(thread_##NAME, NULL);
-
-    RUN_TEST(asserts)
-    RUN_TEST(callback)
-    RUN_TEST(chars)
-    RUN_TEST(custom)
-    RUN_TEST(floats)
-    RUN_TEST(floats_epsilon)
-    RUN_TEST(floats_edge)
-    RUN_TEST(integers)
-    RUN_TEST(ops)
-    RUN_TEST(strings)
-    RUN_TEST(voids)
-    RUN_TEST(unknowns)
+    att_set_verbose(1);
+    att_run_tests(filter);
 
     int failed = att_report();
 

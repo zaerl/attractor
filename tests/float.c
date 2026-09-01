@@ -13,18 +13,16 @@ float float_0(float result) {
     return result;
 }
 
-void *test_floats(void *arg) {
+ATT_TEST(floats) {
     ATT_ASSERT(1.0, 1.0, "1.0 = 1.0");
     ATT_ASSERT(float_0(1.0), 1.0, "Fn 1.0 = 1.0");
     ATT_ASSERT((double)1.0, (double)1.0, "(double)1.0 = (double)1.0");
 
     double a = 1.0;
     ATT_ASSERT(a, 1.0, "a = 1.0");
-
-    return NULL;
 }
 
-void *test_floats_epsilon(void *arg) {
+ATT_TEST(floats_epsilon) {
     double sum = 0.1 + 0.2;
 
     ATT_ASSERT(sum == 0.3, 0, "0.1 + 0.2 differs from 0.3 exactly");
@@ -38,11 +36,9 @@ void *test_floats_epsilon(void *arg) {
 
     att_set_float_epsilon(0);
     ATT_ASSERT(att_get_float_epsilon() == 0, 1, "epsilon reset to 0");
-
-    return NULL;
 }
 
-void *test_floats_edge(void *arg) {
+ATT_TEST(floats_edge) {
     double nan_v = NAN;
     double inf_v = INFINITY;
 
@@ -78,6 +74,4 @@ void *test_floats_edge(void *arg) {
 
     ATT_ASSERT_NE(nan_l, nan_l, "long double NaN != NaN");
     ATT_ASSERT(inf_l, inf_l, "long double inf = inf");
-
-    return NULL;
 }

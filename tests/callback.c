@@ -19,7 +19,7 @@ int callback(int test, const char *description, const char *expression, const ch
     return 0;
 }
 
-void *test_callback(void *arg) {
+ATT_TEST(callback) {
     att_set_test_callback(callback);
 
     ATT_ASSERT(1, 1, "Callback was set");
@@ -27,6 +27,4 @@ void *test_callback(void *arg) {
     ATT_ASSERT(last_expression, "callback_called", "\"callback_called\" = \"callback_called\"");
 
     att_set_test_callback(NULL);
-
-    return NULL;
 }

@@ -9,7 +9,7 @@
 #include <stdio.h>
 #include <string.h>
 
-void *test_asserts(void *arg) {
+ATT_TEST(asserts) {
     unsigned char buffer_1[4] = { 0x01, 0x02, 0x03, 0x04 };
     unsigned char buffer_2[4] = { 0x01, 0x02, 0x03, 0x04 };
 
@@ -29,6 +29,4 @@ void *test_asserts(void *arg) {
     if(!ATT_ASSERT_MEM(buffer_1, buffer_2, sizeof(buffer_1), "ATT_ASSERT_MEM is an expression")) {
         ATT_ASSERT_TRUE(0, "Unreachable");
     }
-
-    return NULL;
 }

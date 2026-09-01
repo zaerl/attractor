@@ -7,7 +7,7 @@
 #include "../attractor.h"
 #include <stdio.h>
 
-void *test_strings(void *arg) {
+ATT_TEST(strings) {
     ATT_ASSERT("foo", "foo", "\"foo\" = \"foo\"");
     ATT_ASSERT((char*)"bar", "bar", "Fn \"bar\" = \"bar\"");
 
@@ -30,6 +30,4 @@ void *test_strings(void *arg) {
     ATT_ASSERT(cpp_str, "quux", "std::string = literal");
     ATT_ASSERT(cstr, std::string("qux"), "Const char pointer = std::string");
 #endif
-
-    return NULL;
 }

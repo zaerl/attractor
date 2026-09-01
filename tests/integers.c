@@ -12,7 +12,7 @@ int int_0(int result) {
     return result;
 }
 
-void *test_integers(void *arg) {
+ATT_TEST(integers) {
     // ATT_ASSERT("Zero", 1, ret_0, 1)
     ATT_ASSERT(1, 1, "1 = 1");
     ATT_ASSERT(1u, 1u, "1u = 1u");
@@ -25,6 +25,4 @@ void *test_integers(void *arg) {
     ATT_ASSERT(1ul, 1ul, "1ul = 1ul");
     ATT_ASSERT(1ll, 1ll, "1ll = 1ll");
     ATT_ASSERT(1ull, 1ull, "1ull = 1ull");
-
-    return NULL;
 }

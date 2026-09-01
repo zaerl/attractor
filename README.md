@@ -1,6 +1,6 @@
 # Attractor
 
-Attractor is a single function unit test framework written in C11.
+Attractor is a lightweight single-header unit test framework written in C11, usable from C++ too.
 
 ## Installation
 
@@ -17,7 +17,7 @@ Every other source file just includes `attractor.h`.
 
 ## Usage
 
-Attractor provide a `ATT_ASSERT` macro that you can use to test your code. The macro is an
+Attractor provides an `ATT_ASSERT` macro that you can use to test your code. The macro is an
 expression that evaluates to a number different from zero if the test passes:
 
 ```c
@@ -29,7 +29,7 @@ if(!ATT_ASSERT(the_value_to_test, the_expected_value, "description")) {
 }
 ```
 
-The `ATT_ASSERT` macro accept these types:
+The `ATT_ASSERT` macro accepts these types:
 
 1. `char`
 2. `unsigned char`
@@ -77,6 +77,59 @@ ATT_ASSERT_MEM(buffer, expected_buffer, sizeof(buffer), "buffers are equal");
 `ATT_ASSERT_TRUE` passes when the condition is true. `ATT_ASSERT_MEM` compares two memory regions
 byte by byte and, on failure, reports the offset and value of the first differing byte.
 
+## Test cases
+
+Assertions can be grouped into named test cases. `ATT_TEST(name)` defines a test case function and
+registers it automatically before `main()` runs:
+
+```c
+#define ATT_IMPLEMENTATION
+#include "attractor.h"
+
+ATT_TEST(math_add) {
+    ATT_ASSERT(2 + 2, 4, "2 + 2 == 4");
+}
+
+ATT_TEST(strings_hello) {
+    ATT_ASSERT("hello", "hello", "hello == hello");
+}
+
+int main(void) {
+    att_run_tests(NULL);
+    return att_report();
+}
+```
+
+`att_run_tests(filter)` runs the registered cases whose name contains `filter`, or all of them when
+`filter` is `NULL`. A test case fails when at least one of its assertions fails; failed cases are
+listed in a recap and counted in a `Test cases valid/run: X/Y` summary. The function returns the
+number of failed cases and composes with `att_report()`, which keeps printing the assertion summary
+and producing the exit code:
+
+```
+$ ./test
+Test: math_add .
+Test: strings_hello .
+Test cases valid/run: 2/2
+Tests valid/run: 2/2
+```
+
+The library takes no command line options itself; the host program stays in charge of its `argv`.
+`att_get_test_name(index)` enumerates the registered names (returning `NULL` past the end), which
+is all a `--list` option needs. See [tests/test.c](tests/test.c) for a small runner implementing
+`--list`/`-l` and `--filter <substring>`/`-f`/`--filter=<substring>` on top of these two calls.
+
+For per-case setup or logging, `att_set_test_start_callback()` registers a callback that
+`att_run_tests()` calls before each test case, passing the case name. Assertions made inside the
+callback count toward the case that is about to run.
+
+Registration happens through compiler constructors (a static initializer in C++,
+`__attribute__((constructor))` on GCC/Clang, the CRT initializer section on MSVC compiling C). On a
+C compiler with none of these, the header defines `ATT_TEST_MANUAL` and you register the cases
+yourself with `att_register_test("name", att_test_fn_name)`. The registry holds `ATT_MAX_TESTS`
+cases (512 by default); define a bigger value in the `ATT_IMPLEMENTATION` file if you need more. In
+TAP mode each case is announced with a `# test: name` diagnostic line.
+
 ## API
 
 1. `ATT_ASSERT(value, expected, description)` you pass the value to test, the expected one and a
@@ -88,7 +141,7 @@ byte by byte and, on failure, reports the offset and value of the first differin
    bytes are equal.
 5. `int att_report(void)` print the `Tests valid/run: X/Y` summary and return `0` if every test
    passed, `1` otherwise. Meant to be used as the return value of `main()`.
-6. `void att_set_verbose(unsigned int verbose)` set verbosity.
+6. `void att_set_verbose(unsigned int verbose)` set verbosity (0 to 4).
 7. `void att_set_show_error(unsigned int show_error)` set to show errors.
 8. `void att_set_generic_callback(att_generic_callback callback)` set a callback to run for generic
    tests
@@ -98,6 +151,15 @@ byte by byte and, on failure, reports the offset and value of the first differin
 12. `void att_set_float_epsilon(long double epsilon)` set the tolerance for float comparisons.
 13. `long double att_get_float_epsilon(void)` return the current float comparison tolerance.
 14. `void att_set_tap(unsigned int tap)` enable TAP (Test Anything Protocol) output.
+15. `ATT_TEST(name)` define a named test case and register it automatically.
+16. `int att_run_tests(const char *filter)` run the registered test cases whose name contains
+    `filter` (all of them when `NULL`); return the number of failed cases.
+17. `unsigned int att_get_test_count(void)` return the count of registered test cases.
+18. `const char *att_get_test_name(unsigned int index)` return the name of the test case at
+    `index`, or `NULL` when out of range.
+19. `void att_register_test(const char *name, att_test_fn fn)` register a test case manually.
+20. `void att_set_test_start_callback(att_test_start_callback callback)` set a callback to call
+    before each test case run by `att_run_tests`.
 
 ## Examples
 
@@ -118,24 +180,34 @@ int main(void) {
 }
 ```
 
-The code does not output anything by default. But you can change this using:
+The default verbosity is `2`. Each level adds output on top of the previous one:
+
+- `0` prints only the failures.
+- `1` adds the test case names, printed by `att_run_tests()` before each case.
+- `2` adds a `.` per valid assertion and an `F` per failed one, on the same line as the case name.
+- `3` prints a `OK`/`NO` line per assertion instead of the dots.
+- `4` behaves like 3 and additionally closes every test case with its own `Valid/run: X/Y`
+  summary counting only that case's assertions.
+
+You can change the level using:
 
 ```c
 // By defining:
-#define ATT_VERBOSE 1 // 0, 1, 2
+#define ATT_VERBOSE 2 // 0, 1, 2, 3, 4
 
 // Or by calling:
-att_set_verbose(1); // 0, 1, 2
+att_set_verbose(2); // 0, 1, 2, 3, 4
 ```
 
-With `verbose = 1` the code output `.` for a valid test and `F` for a failed test:
+Outside of `att_run_tests()` there are no case names, so levels 0 and 1 print only the failures and
+level 2 prints the plain dots:
 
 ```
 ...
 Tests valid/run: 3/3
 ```
 
-With `verbose = 2` the code output:
+With `verbose = 3` the code outputs:
 
 ```
 OK [int] one == one
@@ -145,17 +217,32 @@ OK [long long] long long 3 == long long 3
 Tests valid/run: 3/3
 ```
 
+And this is `verbose = 4` with two test cases:
+
+```
+Test: math_add
+OK [int] 2 + 2 == 4
+Valid/run: 1/1
+
+Test: strings_hello
+OK [char *] hello == hello
+Valid/run: 1/1
+
+Test cases valid/run: 2/2
+Tests valid/run: 2/2
+```
+
 ## Examples with errors
 
 Failures are reported independently of the verbosity level: they are shown whenever `att_show_error`
 is set (the default). Set `att_set_show_error(0)` if you really want complete silence.
 
-If we change `var_to_test_2` in `1.0` this is the output with `verbose = 1`. Each failure is prefixed
-with the source `file:line` and, at `verbose` 0 or 1, the test description, so it is self-contained:
+If we change `var_to_test_2` in `1.0` this is the output with `verbose = 2`. Each failure is prefixed
+with the source `file:line` and, below `verbose` 3, the test description, so it is self-contained:
 
-```c
+```
 .F
-test.c:7: 2.0 == 2.0: Expected 2.000000, got 1.000000
+test.c:9: 2.0 == 2.0: Expected 2, got 1
 
 .
 Tests valid/run: 2/3
@@ -164,32 +251,33 @@ Tests valid/run: 2/3
 With `verbose = 0` only the failures are printed (no `.` for the passing tests):
 
 ```
-test.c:7: 2.0 == 2.0: Expected 2.000000, got 1.000000
+test.c:9: 2.0 == 2.0: Expected 2, got 1
 
 Tests valid/run: 2/3
 ```
 
-And with `verbose = 2` the description is already on the result line, so it is not repeated:
+And with `verbose = 3` the description is already on the result line, so it is not repeated:
 
 ```
 OK [int] one == one
 NO [float] 2.0 == 2.0
-tests/char.c:25: Expected 2.000000, got 1.000000
+test.c:9: Expected 2, got 1
 
 OK [long long] long long 3 == long long 3
-
 Tests valid/run: 2/3
 ```
 
-## Advance usage
+## Advanced usage
 
-Check [tests/test.c](tests/test.c) for an advanced example.
+Check the [tests](tests) folder for advanced examples: every file defines its test cases with
+`ATT_TEST` and [tests/test.c](tests/test.c) is the runner.
 
 ### Threading
 
 The valid/total test counters are atomic, so `ATT_ASSERT` can be used from several threads at once
 without losing updates. `att_get_valid_tests()` and `att_get_total_tests()` therefore report the
-exact number of assertions run, even when tests execute concurrently.
+exact number of assertions run, even when tests execute concurrently. `att_run_tests()` itself runs
+the registered test cases sequentially, on the calling thread.
 
 ### Strings
 

@@ -41,8 +41,14 @@ extern "C" {
 #define ATT_API
 #endif
 
+#ifndef ATT_MAX_TESTS
+#define ATT_MAX_TESTS 512
+#endif
+
+// Verbosity: 0 = only failures, 1 = plus the test case names, 2 = plus a dot per assertion,
+// 3 = a line per assertion, 4 = like 3 plus a "Valid/run: X/Y" summary after each test case.
 #ifndef ATT_VERBOSE
-#define ATT_VERBOSE 1
+#define ATT_VERBOSE 2
 #endif
 
 #ifndef ATT_SHOW_ERROR
@@ -54,11 +60,7 @@ extern "C" {
 #define ATT_TAP 0
 #endif
 
-// Tolerance for float, double and long double comparisons. Defaults to 0 (exact equality). Define a
-// small value (e.g. 1e-6) to compare within an epsilon. The tolerance is absolute
-// (|result - expected| <= epsilon), so pick it for the magnitude of the values under test: an
-// epsilon suited to values near 1.0 is too strict for very large values and too lax for very
-// small ones.
+// Tolerance for float, double and long double comparisons.
 #ifndef ATT_FLOAT_EPSILON
 #define ATT_FLOAT_EPSILON 0
 #endif
@@ -156,22 +158,21 @@ unsigned int att_get_total_tests(void);
 ATT_API unsigned int att_assert_true(int result, const char *description, const char *file, unsigned int line);
 ATT_API unsigned int att_assert_mem(const void *result, const void *expected, size_t size, const char *description, const char *file, unsigned int line);
 
-// Print a summary of the tests run ("Tests valid/run: X/Y") and return 0 if all
-// tests passed, 1 otherwise. Suitable as the return value of main().
+// Base function every assertion goes through.
+ATT_API int att_assert(const char *format, int test, const char *description);
+
+// Print a summary of the tests run ("Tests valid/run: X/Y") and return 0 if all tests passed.
 int att_report(void);
 
 void att_set_verbose(unsigned int verbose);
 void att_set_show_error(unsigned int show_error);
 void att_set_tap(unsigned int tap);
 
-// Tolerance used for float, double and long double comparisons. Initialized to
-// ATT_FLOAT_EPSILON (0 by default, i.e. exact equality) and overridable at runtime.
-// The tolerance is absolute, not relative to the magnitude of the compared values.
+// Tolerance used for float, double and long double comparisons.
 long double att_get_float_epsilon(void);
 void att_set_float_epsilon(long double epsilon);
 
-// A callback to be used when the default comparison fails. Receives the operator
-// of the assertion so custom comparators can honor ATT_ASSERT_NE and the others.
+// A callback to be used when the default comparison fails.
 typedef int (*att_generic_callback)(void *result, void *expected, att_op op,
     const char *description);
 
@@ -185,6 +186,74 @@ void att_set_test_callback(att_test_callback callback);
 
 // Stores the expression for the next assertion. Used internally by ATT_ASSERT.
 void att_set_assert_context(const char *expression, const char *file, unsigned int line);
+
+// Named test cases. ATT_TEST(name) defines a test case function and registers it
+// automatically before main() runs:
+//
+// ATT_TEST(parser_empty) {
+//     ATT_ASSERT(parse(""), NULL, "empty input yields NULL");
+// }
+//
+// int main(void) {
+//     att_run_tests(NULL);
+//     return att_report();
+// }
+typedef void (*att_test_fn)(void);
+
+// Register a test case.
+ATT_API void att_register_test(const char *name, att_test_fn fn);
+
+// Number of registered test cases.
+ATT_API unsigned int att_get_test_count(void);
+
+// Name of the registered test case at index.
+ATT_API const char *att_get_test_name(unsigned int index);
+
+// Run the registered test cases.
+ATT_API int att_run_tests(const char *filter);
+
+// A callback att_run_tests calls before running each test case.
+typedef void (*att_test_start_callback)(const char *name);
+
+void att_set_test_start_callback(att_test_start_callback callback);
+
+#if defined(__cplusplus)
+// C++: a static object initializer runs before main on every compiler.
+#define ATT_TEST(NAME) \
+    static void att_test_fn_##NAME(void); \
+    [[maybe_unused]] static const int att_test_reg_##NAME = \
+        (att_register_test(#NAME, att_test_fn_##NAME), 0); \
+    static void att_test_fn_##NAME(void)
+#elif defined(_MSC_VER)
+// MSVC trick.
+#pragma section(".CRT$XCU", read)
+#if defined(_WIN64)
+#define ATT_TEST_SYM_PREFIX ""
+#else
+#define ATT_TEST_SYM_PREFIX "_"
+#endif
+#define ATT_TEST(NAME) \
+    static void att_test_fn_##NAME(void); \
+    static void __cdecl att_test_reg_##NAME(void) { \
+        att_register_test(#NAME, att_test_fn_##NAME); \
+    } \
+    __pragma(comment(linker, "/include:" ATT_TEST_SYM_PREFIX "att_test_reg_ptr_" #NAME)) \
+    __declspec(allocate(".CRT$XCU")) void(__cdecl *att_test_reg_ptr_##NAME)(void) = \
+        att_test_reg_##NAME; \
+    static void att_test_fn_##NAME(void)
+#elif defined(__GNUC__)
+// The family.
+#define ATT_TEST(NAME) \
+    static void att_test_fn_##NAME(void); \
+    __attribute__((constructor)) static void att_test_reg_##NAME(void) { \
+        att_register_test(#NAME, att_test_fn_##NAME); \
+    } \
+    static void att_test_fn_##NAME(void)
+#else
+// No constructor support.
+#define ATT_TEST_MANUAL 1
+#define ATT_TEST(NAME) static void att_test_fn_##NAME(void)
+#endif
 
 #ifdef __cplusplus
 }
@@ -400,7 +469,7 @@ inline unsigned int att_assert_cpp(T *result, long expected, att_op op, const ch
                 fputs("# ", stdout); \
             } \
             printf(att_show_colors ? "\x1B[90m%s:%u:\x1B[0m " : "%s:%u: ", file, line); \
-            if(att_verbose < 2 && !att_tap) { \
+            if(att_verbose < 3 && !att_tap) { \
                 printf("%s: ", description); \
             } \
             fputs("Expected ", stdout); \
@@ -436,6 +505,8 @@ static unsigned int att_verbose = ATT_VERBOSE;
 static unsigned int att_show_error = ATT_SHOW_ERROR;
 static unsigned int att_tap = ATT_TAP;
 static int att_show_colors = 0;
+// Whether stdout currently ends with an unterminated line of verbose = 1 dots.
+static int att_dots_pending = 0;
 static long double att_float_epsilon = ATT_FLOAT_EPSILON;
 
 // A callback to be used when the default comparison fails.
@@ -491,6 +562,59 @@ void att_set_assert_context(const char *expression, const char *file, unsigned i
     att_assert_line = line;
 }
 
+static int att_console_ready = 0;
+
+// Detect color support (and, on Windows, enable ANSI escape codes).
+static void att_console_init(void) {
+    if(att_console_ready) {
+        return;
+    }
+
+    att_console_ready = 1;
+
+    if(isatty(STDOUT_FILENO)) {
+        const char *no_color = getenv("NO_COLOR");
+
+#ifdef _WIN32
+        // On Windows, the TERM env is usually not set, so enable colors by default if NO_COLOR
+        // is not set
+        att_show_colors = no_color == NULL;
+#else
+        // On Unix, check TERM environment variable
+        const char *term = getenv("TERM");
+        att_show_colors = no_color == NULL && term != NULL && strcmp(term, "dumb") != 0;
+#endif
+    }
+
+#ifdef _WIN32
+    if(att_show_colors) {
+        // On Windows, we need to enable ANSI escape codes for stdout and stderr
+        HANDLE h_out = GetStdHandle(STD_OUTPUT_HANDLE);
+        HANDLE h_err = GetStdHandle(STD_ERROR_HANDLE);
+        DWORD mode_out, mode_err;
+
+        // Enable ANSI escape codes for stdout
+        if(h_out != INVALID_HANDLE_VALUE && GetConsoleMode(h_out, &mode_out)) {
+            mode_out |= ENABLE_VIRTUAL_TERMINAL_PROCESSING;
+
+            if(!SetConsoleMode(h_out, mode_out)) {
+                // If we can't enable ANSI codes, disable colors
+                att_show_colors = 0;
+            }
+        } else {
+            // If we can't get console mode, disable colors
+            att_show_colors = 0;
+        }
+
+        // Enable ANSI escape codes for stderr
+        if(att_show_colors && h_err != INVALID_HANDLE_VALUE && GetConsoleMode(h_err, &mode_err)) {
+            mode_err |= ENABLE_VIRTUAL_TERMINAL_PROCESSING;
+            SetConsoleMode(h_err, mode_err);
+        }
+    }
+#endif
+}
+
 // Base function for assertions. Returns 1 if the test passed, 0 if it failed.
 int att_assert(const char *format, int test, const char *description) {
     unsigned int index = ATT_FETCH_INCREMENT(att_total_tests);
@@ -498,48 +622,7 @@ int att_assert(const char *format, int test, const char *description) {
     // Initialize the library on the first assertion. The fetch-increment returns the
     // previous value atomically, so exactly one thread observes zero here.
     if(index == 0) {
-        if(isatty(STDOUT_FILENO)) {
-            const char *no_color = getenv("NO_COLOR");
-
-#ifdef _WIN32
-            // On Windows, the TERM env is usually not set, so enable colors by default if NO_COLOR
-            // is not set
-            att_show_colors = no_color == NULL;
-#else
-            // On Unix, check TERM environment variable
-            const char *term = getenv("TERM");
-            att_show_colors = no_color == NULL && term != NULL && strcmp(term, "dumb") != 0;
-#endif
-        }
-
-#ifdef _WIN32
-        if(att_show_colors) {
-            // On Windows, we need to enable ANSI escape codes for stdout and stderr
-            HANDLE h_out = GetStdHandle(STD_OUTPUT_HANDLE);
-            HANDLE h_err = GetStdHandle(STD_ERROR_HANDLE);
-            DWORD mode_out, mode_err;
-
-            // Enable ANSI escape codes for stdout
-            if(h_out != INVALID_HANDLE_VALUE && GetConsoleMode(h_out, &mode_out)) {
-                mode_out |= ENABLE_VIRTUAL_TERMINAL_PROCESSING;
-
-                if(!SetConsoleMode(h_out, mode_out)) {
-                    // If we can't enable ANSI codes, disable colors
-                    att_show_colors = 0;
-                }
-            } else {
-                // If we can't get console mode, disable colors
-                att_show_colors = 0;
-            }
-
-            // Enable ANSI escape codes for stderr
-            if(att_show_colors && h_err != INVALID_HANDLE_VALUE &&
-                GetConsoleMode(h_err, &mode_err)) {
-                mode_err |= ENABLE_VIRTUAL_TERMINAL_PROCESSING;
-                SetConsoleMode(h_err, mode_err);
-            }
-        }
-#endif
+        att_console_init();
     }
 
     if(test) {
@@ -553,10 +636,11 @@ int att_assert(const char *format, int test, const char *description) {
 
     if(att_tap) {
         printf(test ? "ok %u - %s\n" : "not ok %u - %s\n", index + 1, description);
-    } else if(att_verbose == 0) {
+    } else if(att_verbose < 2) {
         // Do nothing
-    } else if(att_verbose == 1) {
+    } else if(att_verbose == 2) {
         fputs(test ? "." : (att_show_colors ? "\x1B[31mF\x1B[0m" : "F"), stdout);
+        att_dots_pending = test != 0;
 
         if(!test) {
             fputs("\n", stdout);
@@ -584,7 +668,7 @@ static unsigned int att_assert_op_unsupported(att_op op, const char *description
 
         printf(att_show_colors ? "\x1B[90m%s:%u:\x1B[0m " : "%s:%u: ", file, line);
 
-        if(att_verbose < 2 && !att_tap) {
+        if(att_verbose < 3 && !att_tap) {
             printf("%s: ", description);
         }
 
@@ -633,7 +717,7 @@ ATT_API unsigned int att_assert_mem(const void *result, const void *expected, si
 
             printf(att_show_colors ? "\x1B[90m%s:%u:\x1B[0m " : "%s:%u: ", file, line);
 
-            if(att_verbose < 2 && !att_tap) {
+            if(att_verbose < 3 && !att_tap) {
                 printf("%s: ", description);
             }
 
@@ -661,17 +745,152 @@ int att_report(void) {
         return all_valid ? 0 : 1;
     }
 
-    // The dots printed with verbose = 1 leave the line unterminated.
-    if(att_verbose == 1 && total > 0) {
+    // Close the line of verbose = 1 dots if it is still open.
+    if(att_dots_pending) {
         fputs("\n", stdout);
+        att_dots_pending = 0;
     }
 
     printf(att_show_colors ? (all_valid ? "Tests valid/run: \x1B[32m%u/%u\x1B[0m\n" :
-                                          "Tests valid/run: \x1B[31m%u/%u\x1B[0m\n") :
-                             "Tests valid/run: %u/%u\n",
-        valid, total);
+        "Tests valid/run: \x1B[31m%u/%u\x1B[0m\n") : "Tests valid/run: %u/%u\n", valid, total);
 
     return all_valid ? 0 : 1;
+}
+
+typedef struct att_test_case {
+    const char *name;
+    att_test_fn fn;
+    int failed;
+} att_test_case;
+
+static att_test_case att_tests[ATT_MAX_TESTS];
+static att_atomic_uint att_registered_tests = 0;
+
+// A callback to be called before each test case run by att_run_tests.
+static att_test_start_callback att_test_start_callback_fn = NULL;
+
+void att_set_test_start_callback(att_test_start_callback callback) {
+    att_test_start_callback_fn = callback;
+}
+
+void att_register_test(const char *name, att_test_fn fn) {
+    unsigned int index = ATT_FETCH_INCREMENT(att_registered_tests);
+
+    if(index < ATT_MAX_TESTS) {
+        att_tests[index].name = name ? name : "";
+        att_tests[index].fn = fn;
+        att_tests[index].failed = 0;
+    }
+}
+
+unsigned int att_get_test_count(void) {
+    return (unsigned int)att_registered_tests;
+}
+
+const char *att_get_test_name(unsigned int index) {
+    unsigned int registered = (unsigned int)att_registered_tests;
+    unsigned int count = registered < ATT_MAX_TESTS ? registered : ATT_MAX_TESTS;
+
+    return index < count ? att_tests[index].name : NULL;
+}
+
+static int att_test_matches(const char *name, const char *filter) {
+    return filter == NULL || strstr(name, filter) != NULL;
+}
+
+int att_run_tests(const char *filter) {
+    unsigned int registered = (unsigned int)att_registered_tests;
+    unsigned int count = registered < ATT_MAX_TESTS ? registered : ATT_MAX_TESTS;
+    unsigned int run = 0;
+    unsigned int failed = 0;
+    unsigned int i;
+
+    att_console_init();
+
+    if(registered > count) {
+        printf("%swarning: %u test cases dropped, define ATT_MAX_TESTS above %u\n",
+            att_tap ? "# " : "", registered - count, (unsigned int)ATT_MAX_TESTS);
+    }
+
+    for(i = 0; i < count; ++i) {
+        unsigned int total_before;
+        unsigned int valid_before;
+        unsigned int total_delta;
+        unsigned int valid_delta;
+
+        if(!att_test_matches(att_tests[i].name, filter) || !att_tests[i].fn) {
+            continue;
+        }
+
+        if(att_tap) {
+            printf("# test: %s\n", att_tests[i].name);
+        } else if(att_verbose == 1 || att_verbose >= 3) {
+            printf(att_show_colors ? "Test: \x1b[1;32m%s\x1b[0m\n" : "Test: %s\n", att_tests[i].name);
+        } else if(att_verbose == 2) {
+            // The dots of the case follow the name on the same line.
+            printf(att_show_colors ? "Test: \x1b[1;32m%s\x1b[0m " : "Test: %s ", att_tests[i].name);
+            att_dots_pending = 1;
+        }
+
+        total_before = (unsigned int)att_total_tests;
+        valid_before = (unsigned int)att_valid_tests;
+
+        // The snapshot precedes the callback, so its assertions count toward this case.
+        if(att_test_start_callback_fn) {
+            att_test_start_callback_fn(att_tests[i].name);
+        }
+
+        att_tests[i].fn();
+
+        total_delta = (unsigned int)att_total_tests - total_before;
+        valid_delta = (unsigned int)att_valid_tests - valid_before;
+        att_tests[i].failed = total_delta != valid_delta;
+
+        // Close the name + dots line of verbose 2, if a failure did not already.
+        if(!att_tap && att_verbose == 2 && att_dots_pending) {
+            fputs("\n", stdout);
+            att_dots_pending = 0;
+        }
+
+        // At verbose 4 each test case ends with its own valid/run summary.
+        if(!att_tap && att_verbose >= 4) {
+            printf(att_show_colors ? (att_tests[i].failed ? "Valid/run: \x1B[31m%u/%u\x1B[0m\n\n" :
+                "Valid/run: \x1B[32m%u/%u\x1B[0m\n\n") : "Valid/run: %u/%u\n\n", valid_delta,
+                total_delta);
+        }
+
+        failed += (unsigned int)att_tests[i].failed;
+        ++run;
+    }
+
+    // Close the line of verbose = 1 dots if it is still open.
+    if(att_dots_pending) {
+        fputs("\n", stdout);
+        att_dots_pending = 0;
+    }
+
+    for(i = 0; failed > 0 && i < count; ++i) {
+        if(att_tests[i].failed) {
+            if(att_tap) {
+                printf("# failed: %s\n", att_tests[i].name);
+            } else {
+                printf(att_show_colors ? "Failed: \x1B[31m%s\x1B[0m\n" : "Failed: %s\n",
+                    att_tests[i].name);
+            }
+        }
+    }
+
+    if(att_tap) {
+        printf("# Test cases valid/run: %u/%u\n", run - failed, run);
+    } else {
+        printf(att_show_colors ? (failed == 0 ? "Test cases valid/run: \x1B[32m%u/%u\x1B[0m\n" :
+            "Test cases valid/run: \x1B[31m%u/%u\x1B[0m\n") : "Test cases valid/run: %u/%u\n",
+            run - failed, run);
+    }
+
+    fflush(stdout);
+
+    return (int)failed;
 }
 
 // These functions are automatically generated. Do not edit.

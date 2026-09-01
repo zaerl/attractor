@@ -13,11 +13,9 @@ typedef struct custom_struct {
 #include "../attractor.h"
 #include <stdio.h>
 
-void *test_custom(void *arg) {
+ATT_TEST(custom) {
     custom_struct s;
     s.value = 1;
 
     ATT_ASSERT(&s, &s, "Custom struct pointer same address");
-
-    return NULL;
 }

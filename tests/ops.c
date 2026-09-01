@@ -8,7 +8,7 @@
 
 #include <stdio.h>
 
-void *test_ops(void *arg) {
+ATT_TEST(ops) {
     ATT_ASSERT_NE(1, 2, "1 != 2");
     ATT_ASSERT_LT(1, 2, "1 < 2");
     ATT_ASSERT_LE(2, 2, "2 <= 2");
@@ -47,6 +47,4 @@ void *test_ops(void *arg) {
     if(!ATT_ASSERT_LT(1, 2, "ATT_ASSERT_LT is an expression")) {
         ATT_ASSERT_TRUE(0, "Unreachable");
     }
-
-    return NULL;
 }

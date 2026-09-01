@@ -17,7 +17,7 @@ int assert_unknown(void* result, void* expected, att_op op, const char *descript
     return op == ATT_OP_NE ? !equal : equal;
 }
 
-void *test_unknowns(void *arg) {
+ATT_TEST(unknowns) {
     typedef int num;
     num a = 1;
     num b = 1;
@@ -51,6 +51,4 @@ void *test_unknowns(void *arg) {
     sb.unknown = 2;
     ATT_ASSERT_NE(&sa, &sb, "Unknown struct sa != sb via callback");
     att_set_generic_callback(NULL);
-
-    return NULL;
 }
