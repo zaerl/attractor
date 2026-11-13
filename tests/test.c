@@ -45,7 +45,7 @@ int main(int argc, const char *argv[]) {
     int failed = att_report();
 
     timespec_get(&end, TIME_UTC);
-    elapsed = (end.tv_sec - start.tv_sec) + (end.tv_nsec - start.tv_nsec) / 1e9;
+    elapsed = (double)(end.tv_sec - start.tv_sec) + (double)(end.tv_nsec - start.tv_nsec) / 1e9;
 
     printf("Execution time: %.4f seconds\n", elapsed);
 

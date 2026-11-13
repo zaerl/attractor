@@ -284,6 +284,10 @@ Check the [tests](tests) folder for advanced examples: every file defines its te
 [tests/golden/failures.c](tests/golden/failures.c), a program whose assertions all fail: `make test`
 compares its output with [tests/golden/failures.expected](tests/golden/failures.expected).
 
+The header is kept free of warnings under strict compiler flags (`-Wpedantic`, `-Wconversion`,
+`-Wsign-conversion`, `-Wformat=2`, `-Wcast-qual` and more): `make strict` compiles it in C and C++
+with those warnings turned into errors.
+
 ### Threading
 
 The valid/total test counters are atomic, so `ATT_ASSERT` can be used from several threads at once

@@ -146,23 +146,11 @@ function fn_content(type_info, unsigned, is_const) {
     let error_message = '';
 
     if(s_format === '"%c"') {
-        error_message = `const char *format_1;\n        const char *format_2;
+        // The printable form is built first, so that the format string stays a literal.
+        error_message = `char text_1[8];
+        char text_2[8];
 
-        // Go through unsigned char: a negative char must not be sign-extended, and
-        // bytes outside printable ASCII are shown as hex.
-        if((unsigned char)expected < 32 || (unsigned char)expected >= 127) {
-            format_1 = "\\\\x%02X";
-        } else {
-            format_1 = "%c";
-        }
-
-        if((unsigned char)result < 32 || (unsigned char)result >= 127) {
-            format_2 = "\\\\x%02X";
-        } else {
-            format_2 = "%c";
-        }
-
-        ATT_ERROR_MESSAGE((unsigned char)result, format_1, format_2, (unsigned char)expected, op);`;
+        ATT_ERROR_MESSAGE(att_char_text((unsigned char)result, text_2), "%s", "%s", att_char_text((unsigned char)expected, text_1), op);`;
     } else if(s_format === '"%p"' && format_name(type_info, unsigned) === 'c') {
         error_message = `if(ATT_STRING_AS_POINTERS == 1) {
             ATT_ERROR_MESSAGE((const void *)result, "%p", "%p", (const void *)expected, op);
@@ -170,6 +158,9 @@ function fn_content(type_info, unsigned, is_const) {
             // A NULL string is printed as an unquoted NULL instead of being passed to %s.
             ATT_ERROR_MESSAGE(result ? result : "NULL", expected ? "\\"%s\\"" : "%s", result ? "\\"%s\\"" : "%s", expected ? expected : "NULL", op);
         }`;
+    } else if(name === 'float') {
+        // A float is promoted to double by printf anyway: make the conversion explicit.
+        error_message = `ATT_ERROR_MESSAGE((double)result, ${s_format}, ${s_format}, (double)expected, op);`;
     } else {
         error_message = `ATT_ERROR_MESSAGE(result, ${s_format}, ${s_format}, expected, op);`;
     }
@@ -182,7 +173,7 @@ function fn_content(type_info, unsigned, is_const) {
         body = `    int test;
 
     if(att_generic_callback_fn) {
-        test = att_assert("callback", att_generic_callback_fn((void *)result, (void *)expected, op, description), description);
+        test = att_assert("callback", att_generic_callback_fn(ATT_UNCONST(result), ATT_UNCONST(expected), op, description), description);
     } else if(op != ATT_OP_EQ && op != ATT_OP_NE) {
         return att_assert_op_unsupported(op, description, file, line);
     } else {
@@ -202,7 +193,7 @@ function fn_content(type_info, unsigned, is_const) {
     test = att_assert(${type}, test, description);`;
     } else if(name === 'float' || name === 'double' || name === 'long double') {
         // EQ/NE honor the configured epsilon; the relational operators compare plainly.
-        body = `    int equal = (result == expected) || ((result > expected ? result - expected : expected - result) <= att_float_epsilon);
+        body = `    int equal = (result == expected) || ((long double)(result > expected ? result - expected : expected - result) <= att_float_epsilon);
     int test = att_assert(${type}, op == ATT_OP_EQ ? equal : (op == ATT_OP_NE ? !equal : ATT_COMPARE(result, expected, op)), description);`;
     } else if(name === 'void *' || name === 'const void *' || name === '_Bool') {
         body = `    if(op != ATT_OP_EQ && op != ATT_OP_NE) {
@@ -221,7 +212,7 @@ ${body}
         ${error_message}
     }
 
-    return test;
+    return (unsigned int)test;
 }`;
 }
 
