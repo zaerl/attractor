@@ -24,15 +24,15 @@
 #include <stddef.h>
 
 #ifdef __cplusplus
+// The C++ side uses if constexpr, std::void_t and the _v type traits.
+#if (defined(_MSVC_LANG) ? _MSVC_LANG : __cplusplus) < 201703L
+#error "attractor.h requires C++17 or later"
+#endif
+
 #include <cstddef>
 #include <cstdint>
 #include <string>
 #include <type_traits>
-
-// In C++, _Bool doesn't exist, so map it to bool
-#ifndef _Bool
-#define _Bool bool
-#endif
 
 extern "C" {
 #endif
@@ -154,7 +154,7 @@ ATT_API unsigned int att_assert_lf(double result, double expected, att_op op, co
 ATT_API unsigned int att_assert_Lf(long double result, long double expected, att_op op, const char *description, const char *file, unsigned int line);
 ATT_API unsigned int att_assert_p_p(void *result, void *expected, att_op op, const char *description, const char *file, unsigned int line);
 ATT_API unsigned int att_assert_cp_p(const void *result, const void *expected, att_op op, const char *description, const char *file, unsigned int line);
-ATT_API unsigned int att_assert_b(_Bool result, _Bool expected, att_op op, const char *description, const char *file, unsigned int line);
+ATT_API unsigned int att_assert_b(bool result, bool expected, att_op op, const char *description, const char *file, unsigned int line);
 ATT_API unsigned int att_assert_unknown(const void *result, const void *expected, att_op op, const char *description, const char *file, unsigned int line);
 
 ATT_API unsigned int att_get_valid_tests(void);
@@ -302,10 +302,10 @@ ATT_API void att_set_test_start_callback(att_test_start_callback callback);
 
 #ifdef __cplusplus
 // Helper to check if common_type exists
-template <typename T1, typename T2, typename = void> struct has_common_type : std::false_type {};
+template <typename T1, typename T2, typename = void> struct att_has_common_type : std::false_type {};
 
 template <typename T1, typename T2>
-struct has_common_type<T1, T2, std::void_t<typename std::common_type<T1, T2>::type>>
+struct att_has_common_type<T1, T2, std::void_t<typename std::common_type<T1, T2>::type>>
     : std::true_type {};
 
 // Integer types wider than a char, excluding bool.
@@ -326,7 +326,7 @@ inline unsigned int att_assert_cpp(T1 result, T2 expected, att_op op, const char
         } else {
             return att_assert_llu_lld(result, expected, op, description, file, line);
         }
-    } else if constexpr(has_common_type<T1, T2>::value) {
+    } else if constexpr(att_has_common_type<T1, T2>::value) {
         // Convert both to the common type for comparison
         // Convert both to a common type for comparison
         using common_type = std::common_type_t<T1, T2>;
@@ -1357,7 +1357,7 @@ ATT_API unsigned int att_assert_cp_p(const void *result, const void *expected, a
     return test;
 }
 
-ATT_API unsigned int att_assert_b(_Bool result, _Bool expected, att_op op, const char *description, const char *file, unsigned int line) {
+ATT_API unsigned int att_assert_b(bool result, bool expected, att_op op, const char *description, const char *file, unsigned int line) {
     if(op != ATT_OP_EQ && op != ATT_OP_NE) {
         return att_assert_op_unsupported(op, description, file, line);
     }
