@@ -860,7 +860,7 @@ int att_assert(const char *format, int test, const char *description) {
         }
     } else {
         const char *ok = att_show_colors ? "\x1B[32mOK\x1B[0m" : "OK";
-        const char *fail = att_show_colors ? "\x1B[31mNO\x1B[0m" : "NO";
+        const char *fail = att_show_colors ? "\x1B[31mFAIL\x1B[0m" : "FAIL";
 
         att_printf(att_show_colors ? "%s [\x1b[36m%s\x1b[0m] %s\n" : "%s [%s] %s\n", test ? ok : fail,
             format, description);
