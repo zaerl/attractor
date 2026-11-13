@@ -89,7 +89,7 @@ not ok 33 - memory
 not ok 34 - long double
 # tests/golden/failures.c:50: Expected 2.5, got 1.5
 not ok 35 - has a \# hash and a line break
-# tests/golden/failures.c:66: Expected 2, got 1
+# tests/golden/failures.c:67: Expected 2, got 1
 not ok 36 - A test case matches the filter
 # No test case matches the filter "no_such_case"
 1..36

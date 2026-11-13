@@ -51,6 +51,7 @@ static void values(void) {
 }
 
 int main(void) {
+    att_set_show_execution_time(0);
     values();
 
     // The recap of a run lists only the cases that failed in that run.
