@@ -499,6 +499,13 @@ inline unsigned int att_assert_cpp(T *result, int expected, att_op op, const cha
     const char *file, unsigned int line) {
     return att_assert_cpp(result, static_cast<long>(expected), op, description, file, line);
 }
+
+// NULL is a long long constant where a pointer is wider than a long (64-bit MinGW).
+template <typename T>
+inline unsigned int att_assert_cpp(T *result, long long expected, att_op op,
+    const char *description, const char *file, unsigned int line) {
+    return att_assert_cpp(result, static_cast<long>(expected), op, description, file, line);
+}
 #endif
 
 #endif /* ATTRACTOR_H */
