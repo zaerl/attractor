@@ -47,6 +47,7 @@ static void values(void) {
     ATT_ASSERT_LT(flag, flag, "unsupported operator");
     ATT_ASSERT_TRUE(two == 3, "condition");
     ATT_ASSERT_MEM(buffer_1, buffer_2, sizeof(buffer_1), "memory");
+    ATT_ASSERT(1.5L, 2.5L, "long double");
 }
 
 int main(void) {

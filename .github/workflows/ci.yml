@@ -76,3 +76,39 @@ jobs:
         run: |
           cl /nologo /std:c++17 /EHsc /TP /W3 /D_CRT_SECURE_NO_WARNINGS /Fe:test-cpp.exe tests\*.c || exit /b 1
           test-cpp.exe
+
+  mingw:
+    name: windows-latest / ${{ matrix.msystem }} / gcc
+    runs-on: windows-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          # UCRT64 links the Universal CRT, MINGW64 the legacy msvcrt.dll.
+          - { msystem: UCRT64, toolchain: mingw-w64-ucrt-x86_64-gcc }
+          - { msystem: MINGW64, toolchain: mingw-w64-x86_64-gcc }
+    defaults:
+      run:
+        shell: msys2 {0}
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: msys2/setup-msys2@v2
+        with:
+          msystem: ${{ matrix.msystem }}
+          install: make diffutils ${{ matrix.toolchain }}
+
+      # The committed header is used as is: mark the generator as already run, so make does not
+      # need Node.js here. The unix job checks that the header matches the generator.
+      - name: Skip the generator
+        run: mkdir -p bin && touch bin/.generated
+
+      - name: C tests
+        run: make test CC=gcc
+
+      - name: C++ tests
+        run: make test-cpp CXX=g++
+
+      # GCC checks printf formats against the Microsoft dialect here, unlike on the other jobs.
+      - name: Strict warnings
+        run: make strict CC=gcc CXX=g++
