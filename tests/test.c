@@ -4,11 +4,6 @@
  * This file is distributed under the MIT License. See LICENSE for details.
  */
 
-// clock_gettime() is POSIX: strict ISO C modes (-std=c11) hide it without this.
-#ifndef _POSIX_C_SOURCE
-    #define _POSIX_C_SOURCE 200809L
-#endif
-
 #include <stdio.h>
 #include <string.h>
 
