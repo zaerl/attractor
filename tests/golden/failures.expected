@@ -1,0 +1,91 @@
+F
+tests/golden/failures.c:36: negative char: Expected a, got \x80
+
+F
+tests/golden/failures.c:37: control char: Expected a, got \x0A
+
+F
+tests/golden/failures.c:38: int: Expected 3, got 2
+
+F
+tests/golden/failures.c:39: int with operator: Expected >= 3, got 2
+
+F
+tests/golden/failures.c:40: int against double: Expected 2.5, got 2
+
+F
+tests/golden/failures.c:41: unsigned against negative: Expected -1, got 4294967295
+
+F
+tests/golden/failures.c:42: negative against unsigned: Expected > 1, got -1
+
+F
+tests/golden/failures.c:43: double: Expected 2.5, got 1.5
+
+F
+tests/golden/failures.c:44: strings: Expected "bar", got "foo"
+
+F
+tests/golden/failures.c:45: NULL string: Expected "bar", got NULL
+
+F
+tests/golden/failures.c:46: NULL expected string: Expected NULL, got "foo"
+
+F
+tests/golden/failures.c:47: unsupported operator: Operator < is not supported for this type
+
+F
+tests/golden/failures.c:48: condition: Expected true, got false
+
+F
+tests/golden/failures.c:49: memory: Byte 1: expected 0x09, got 0x02
+
+Test: first_failure F
+tests/golden/failures.c:14: first case fails: Expected 2, got 1
+
+Failed: first_failure
+Test cases valid/run: 0/1
+Test: second_failure F
+tests/golden/failures.c:18: second case fails: Expected true, got false
+
+Failed: second_failure
+Test cases valid/run: 0/1
+Test: passing .
+Test cases valid/run: 1/1
+F
+No test case matches the filter "no_such_case"
+
+not ok 19 - negative char
+# tests/golden/failures.c:36: Expected a, got \x80
+not ok 20 - control char
+# tests/golden/failures.c:37: Expected a, got \x0A
+not ok 21 - int
+# tests/golden/failures.c:38: Expected 3, got 2
+not ok 22 - int with operator
+# tests/golden/failures.c:39: Expected >= 3, got 2
+not ok 23 - int against double
+# tests/golden/failures.c:40: Expected 2.5, got 2
+not ok 24 - unsigned against negative
+# tests/golden/failures.c:41: Expected -1, got 4294967295
+not ok 25 - negative against unsigned
+# tests/golden/failures.c:42: Expected > 1, got -1
+not ok 26 - double
+# tests/golden/failures.c:43: Expected 2.5, got 1.5
+not ok 27 - strings
+# tests/golden/failures.c:44: Expected "bar", got "foo"
+not ok 28 - NULL string
+# tests/golden/failures.c:45: Expected "bar", got NULL
+not ok 29 - NULL expected string
+# tests/golden/failures.c:46: Expected NULL, got "foo"
+not ok 30 - unsupported operator
+# tests/golden/failures.c:47: Operator < is not supported for this type
+not ok 31 - condition
+# tests/golden/failures.c:48: Expected true, got false
+not ok 32 - memory
+# tests/golden/failures.c:49: Byte 1: expected 0x09, got 0x02
+not ok 33 - has a \# hash and a line break
+# tests/golden/failures.c:65: Expected 2, got 1
+not ok 34 - A test case matches the filter
+# No test case matches the filter "no_such_case"
+1..34
+# Tests valid/run: 1/34

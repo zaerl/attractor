@@ -52,6 +52,7 @@ const types = [
     }, {
         name: 'void',
         ptr: true,
+        const_ptr: true,
         formats: [ 'p' ]
     }, {
         name: '_Bool',
@@ -60,12 +61,14 @@ const types = [
         alt_formats: [ 'd' ]
     }, {
         name: 'default',
-        alt_name: 'void *',
+        alt_name: 'const void *',
         ptr: true,
         formats: [ 'unknown' ],
         alt_formats: [ 'p' ]
     }
 ];
+
+const mixed_types = [ 'short', 'int', 'long', 'long long' ];
 
 const generics = [];
 const decls = [];
@@ -117,9 +120,14 @@ function fn_decl(type_info, unsigned, is_const) {
         type = type_info.alt_name;
     }
 
-    const postfix = type_info.name.endsWith('*') ? '' : ' ';
+    // A string is only read, so "char *" accepts a "const char *" expected value too.
+    if(type === 'char *') {
+        type = 'const char *';
+    }
 
-    return `\nATT_API unsigned int ${fn}(${type}${postfix}result, ${type}${postfix}expected, att_op op, const char *description, const char *file, unsigned int line)`;
+    const sep = type.endsWith('*') ? '' : ' ';
+
+    return `\nATT_API unsigned int ${fn}(${type}${sep}result, ${type}${sep}expected, att_op op, const char *description, const char *file, unsigned int line)`;
 }
 
 function fn_content(type_info, unsigned, is_const) {
@@ -135,21 +143,28 @@ function fn_content(type_info, unsigned, is_const) {
     if(s_format === '"%c"') {
         error_message = `const char *format_1;\n        const char *format_2;
 
-        if(expected < 32 || expected == 127) {
+        // Go through unsigned char: a negative char must not be sign-extended, and
+        // bytes outside printable ASCII are shown as hex.
+        if((unsigned char)expected < 32 || (unsigned char)expected >= 127) {
             format_1 = "\\\\x%02X";
         } else {
             format_1 = "%c";
         }
 
-        if(result < 32 || result == 127) {
+        if((unsigned char)result < 32 || (unsigned char)result >= 127) {
             format_2 = "\\\\x%02X";
         } else {
             format_2 = "%c";
         }
 
-        ATT_ERROR_MESSAGE(result, format_1, format_2, expected, op);`;
+        ATT_ERROR_MESSAGE((unsigned char)result, format_1, format_2, (unsigned char)expected, op);`;
     } else if(s_format === '"%p"' && format_name(type_info, unsigned) === 'c') {
-        error_message = `ATT_ERROR_MESSAGE(result, ATT_STRING_AS_POINTERS == 1 ? "%p" : "\\"%s\\"", ATT_STRING_AS_POINTERS == 1 ? "%p" : "\\"%s\\"", expected, op);`
+        error_message = `if(ATT_STRING_AS_POINTERS == 1) {
+            ATT_ERROR_MESSAGE((const void *)result, "%p", "%p", (const void *)expected, op);
+        } else {
+            // A NULL string is printed as an unquoted NULL instead of being passed to %s.
+            ATT_ERROR_MESSAGE(result ? result : "NULL", expected ? "\\"%s\\"" : "%s", result ? "\\"%s\\"" : "%s", expected ? expected : "NULL", op);
+        }`;
     } else {
         error_message = `ATT_ERROR_MESSAGE(result, ${s_format}, ${s_format}, expected, op);`;
     }
@@ -162,7 +177,7 @@ function fn_content(type_info, unsigned, is_const) {
         body = `    int test;
 
     if(att_generic_callback_fn) {
-        test = att_assert("callback", att_generic_callback_fn(result, expected, op, description), description);
+        test = att_assert("callback", att_generic_callback_fn((void *)result, (void *)expected, op, description), description);
     } else if(op != ATT_OP_EQ && op != ATT_OP_NE) {
         return att_assert_op_unsupported(op, description, file, line);
     } else {
@@ -184,7 +199,7 @@ function fn_content(type_info, unsigned, is_const) {
         // EQ/NE honor the configured epsilon; the relational operators compare plainly.
         body = `    int equal = (result == expected) || ((result > expected ? result - expected : expected - result) <= att_float_epsilon);
     int test = att_assert(${type}, op == ATT_OP_EQ ? equal : (op == ATT_OP_NE ? !equal : ATT_COMPARE(result, expected, op)), description);`;
-    } else if(name === 'void *' || name === '_Bool') {
+    } else if(name === 'void *' || name === 'const void *' || name === '_Bool') {
         body = `    if(op != ATT_OP_EQ && op != ATT_OP_NE) {
         return att_assert_op_unsupported(op, description, file, line);
     }
@@ -208,6 +223,10 @@ ${body}
 function generic_decl(type_info, unsigned, is_const) {
     const type = type_name(type_info, unsigned);
     const fn = fn_name(type_info, unsigned, is_const);
+
+    if(mixed_types.includes(type_info.name)) {
+        return `${type}: ${unsigned ? 'ATT_GENERIC_UNSIGNED' : 'ATT_GENERIC_SIGNED'}(EXPECTED, ${fn})`;
+    }
 
     return `${type}: ${fn}`;
 }
@@ -254,7 +273,7 @@ file_content = substitute_text(
 // Declarations of the functions list.
 file_content = substitute_text(
     file_content, "// This functions list is automatically generated. Do not edit.",
-    "\n\nunsigned int att_get_valid_tests(void);",
+    "\n\nATT_API unsigned int att_get_valid_tests(void);",
     decls.join(';') + ';');
 
 // Function bodies in the ATT_IMPLEMENTATION section

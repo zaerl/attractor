@@ -28,8 +28,13 @@ ATT_TEST(unknowns) {
     float_num d = 1.0;
     ATT_ASSERT(c, d, "Unknown typedef float num c = d");
 
-    unknown_struct sa;
-    unknown_struct sb;
+    unknown_struct sa = { 0 };
+    unknown_struct sb = { 0 };
+    const unknown_struct *csa = &sa;
+
+    // Pointers to const take the unknown-type path without discarding the qualifier.
+    ATT_ASSERT(csa, csa, "Unknown const struct csa = csa");
+    ATT_ASSERT(csa, &sa, "Unknown const struct csa = sa");
 
     ATT_ASSERT(&sa, &sa, "Unknown struct sa = sa");
 
