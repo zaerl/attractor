@@ -476,7 +476,8 @@ inline unsigned int att_assert_cpp(const char *result, char *expected, att_op op
 template <typename T1, typename T2>
 inline unsigned int att_assert_cpp(T1 *result, T2 *expected, att_op op, const char *description,
     const char *file, unsigned int line) {
-    return att_assert_unknown((const void *)result, (void *)expected, op, description, file, line);
+    return att_assert_unknown((const void *)result, (const void *)expected, op, description, file,
+        line);
 }
 
 template <typename T>
@@ -507,6 +508,7 @@ inline unsigned int att_assert_cpp(T *result, int expected, att_op op, const cha
 #define ATT_IMPLEMENTATION_INCLUDED
 
 #include <stdarg.h>
+#include <stdint.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
@@ -646,6 +648,23 @@ static void att_flush(void) {
 
 // Indexed by att_op.
 static const char *att_op_symbols[] = { "==", "!=", "<", "<=", ">", ">=" };
+
+// The generic callback takes non-const pointers. Going through an integer drops the qualifier
+// without a cast that discards const.
+#define ATT_UNCONST(POINTER) ((void *)(uintptr_t)(POINTER))
+
+// Printable form of a character: the character itself, or \xNN outside printable ASCII.
+// BUFFER must hold at least 8 bytes.
+static const char *att_char_text(unsigned char value, char *buffer) {
+    if(value < 32 || value >= 127) {
+        snprintf(buffer, 8, "\\x%02X", (unsigned int)value);
+    } else {
+        buffer[0] = (char)value;
+        buffer[1] = '\0';
+    }
+
+    return buffer;
+}
 
 static att_atomic_uint att_valid_tests = 0;
 static att_atomic_uint att_total_tests = 0;
@@ -866,7 +885,7 @@ ATT_API unsigned int att_assert_true(int result, const char *description, const 
         ATT_ERROR_MESSAGE("false", "%s", "%s", "true", ATT_OP_EQ);
     }
 
-    return test;
+    return (unsigned int)test;
 }
 
 // Signed result against unsigned expected. A negative result is below every unsigned value.
@@ -880,7 +899,7 @@ ATT_API unsigned int att_assert_lld_llu(long long result, unsigned long long exp
         ATT_ERROR_MESSAGE(result, "%llu", "%lld", expected, op);
     }
 
-    return test;
+    return (unsigned int)test;
 }
 
 // Unsigned result against signed expected. A negative expected is below every unsigned value.
@@ -894,7 +913,7 @@ ATT_API unsigned int att_assert_llu_lld(unsigned long long result, long long exp
         ATT_ERROR_MESSAGE(result, "%lld", "%llu", expected, op);
     }
 
-    return test;
+    return (unsigned int)test;
 }
 
 // Custom assertion functions for ATT_ASSERT_MEM.
@@ -906,7 +925,7 @@ ATT_API unsigned int att_assert_mem(const void *result, const void *expected, si
 
     if(!test) {
         if(!result || !expected) {
-            ATT_ERROR_MESSAGE((void *)result, "%p", "%p", (void *)expected, ATT_OP_EQ);
+            ATT_ERROR_MESSAGE(result, "%p", "%p", expected, ATT_OP_EQ);
         } else if(att_show_error) {
             const unsigned char *res = (const unsigned char *)result;
             const unsigned char *exp = (const unsigned char *)expected;
@@ -935,7 +954,7 @@ ATT_API unsigned int att_assert_mem(const void *result, const void *expected, si
         att_flush();
     }
 
-    return test;
+    return (unsigned int)test;
 }
 
 int att_report(void) {
@@ -1149,54 +1168,26 @@ ATT_API unsigned int att_assert_c(char result, char expected, att_op op, const c
     int test = att_assert("char", ATT_COMPARE(result, expected, op), description);
 
     if(!test) {
-        const char *format_1;
-        const char *format_2;
+        char text_1[8];
+        char text_2[8];
 
-        // Go through unsigned char: a negative char must not be sign-extended, and
-        // bytes outside printable ASCII are shown as hex.
-        if((unsigned char)expected < 32 || (unsigned char)expected >= 127) {
-            format_1 = "\\x%02X";
-        } else {
-            format_1 = "%c";
-        }
-
-        if((unsigned char)result < 32 || (unsigned char)result >= 127) {
-            format_2 = "\\x%02X";
-        } else {
-            format_2 = "%c";
-        }
-
-        ATT_ERROR_MESSAGE((unsigned char)result, format_1, format_2, (unsigned char)expected, op);
+        ATT_ERROR_MESSAGE(att_char_text((unsigned char)result, text_2), "%s", "%s", att_char_text((unsigned char)expected, text_1), op);
     }
 
-    return test;
+    return (unsigned int)test;
 }
 
 ATT_API unsigned int att_assert_u_c(unsigned char result, unsigned char expected, att_op op, const char *description, const char *file, unsigned int line) {
     int test = att_assert("unsigned char", ATT_COMPARE(result, expected, op), description);
 
     if(!test) {
-        const char *format_1;
-        const char *format_2;
+        char text_1[8];
+        char text_2[8];
 
-        // Go through unsigned char: a negative char must not be sign-extended, and
-        // bytes outside printable ASCII are shown as hex.
-        if((unsigned char)expected < 32 || (unsigned char)expected >= 127) {
-            format_1 = "\\x%02X";
-        } else {
-            format_1 = "%c";
-        }
-
-        if((unsigned char)result < 32 || (unsigned char)result >= 127) {
-            format_2 = "\\x%02X";
-        } else {
-            format_2 = "%c";
-        }
-
-        ATT_ERROR_MESSAGE((unsigned char)result, format_1, format_2, (unsigned char)expected, op);
+        ATT_ERROR_MESSAGE(att_char_text((unsigned char)result, text_2), "%s", "%s", att_char_text((unsigned char)expected, text_1), op);
     }
 
-    return test;
+    return (unsigned int)test;
 }
 
 ATT_API unsigned int att_assert_p_c(const char *result, const char *expected, att_op op, const char *description, const char *file, unsigned int line) {
@@ -1219,7 +1210,7 @@ ATT_API unsigned int att_assert_p_c(const char *result, const char *expected, at
         }
     }
 
-    return test;
+    return (unsigned int)test;
 }
 
 ATT_API unsigned int att_assert_cp_c(const char *result, const char *expected, att_op op, const char *description, const char *file, unsigned int line) {
@@ -1242,7 +1233,7 @@ ATT_API unsigned int att_assert_cp_c(const char *result, const char *expected, a
         }
     }
 
-    return test;
+    return (unsigned int)test;
 }
 
 ATT_API unsigned int att_assert_hd(short result, short expected, att_op op, const char *description, const char *file, unsigned int line) {
@@ -1252,7 +1243,7 @@ ATT_API unsigned int att_assert_hd(short result, short expected, att_op op, cons
         ATT_ERROR_MESSAGE(result, "%hd", "%hd", expected, op);
     }
 
-    return test;
+    return (unsigned int)test;
 }
 
 ATT_API unsigned int att_assert_u_hu(unsigned short result, unsigned short expected, att_op op, const char *description, const char *file, unsigned int line) {
@@ -1262,7 +1253,7 @@ ATT_API unsigned int att_assert_u_hu(unsigned short result, unsigned short expec
         ATT_ERROR_MESSAGE(result, "%hu", "%hu", expected, op);
     }
 
-    return test;
+    return (unsigned int)test;
 }
 
 ATT_API unsigned int att_assert_d(int result, int expected, att_op op, const char *description, const char *file, unsigned int line) {
@@ -1272,7 +1263,7 @@ ATT_API unsigned int att_assert_d(int result, int expected, att_op op, const cha
         ATT_ERROR_MESSAGE(result, "%d", "%d", expected, op);
     }
 
-    return test;
+    return (unsigned int)test;
 }
 
 ATT_API unsigned int att_assert_u_u(unsigned int result, unsigned int expected, att_op op, const char *description, const char *file, unsigned int line) {
@@ -1282,7 +1273,7 @@ ATT_API unsigned int att_assert_u_u(unsigned int result, unsigned int expected, 
         ATT_ERROR_MESSAGE(result, "%u", "%u", expected, op);
     }
 
-    return test;
+    return (unsigned int)test;
 }
 
 ATT_API unsigned int att_assert_ld(long result, long expected, att_op op, const char *description, const char *file, unsigned int line) {
@@ -1292,7 +1283,7 @@ ATT_API unsigned int att_assert_ld(long result, long expected, att_op op, const 
         ATT_ERROR_MESSAGE(result, "%ld", "%ld", expected, op);
     }
 
-    return test;
+    return (unsigned int)test;
 }
 
 ATT_API unsigned int att_assert_u_lu(unsigned long result, unsigned long expected, att_op op, const char *description, const char *file, unsigned int line) {
@@ -1302,7 +1293,7 @@ ATT_API unsigned int att_assert_u_lu(unsigned long result, unsigned long expecte
         ATT_ERROR_MESSAGE(result, "%lu", "%lu", expected, op);
     }
 
-    return test;
+    return (unsigned int)test;
 }
 
 ATT_API unsigned int att_assert_lld(long long result, long long expected, att_op op, const char *description, const char *file, unsigned int line) {
@@ -1312,7 +1303,7 @@ ATT_API unsigned int att_assert_lld(long long result, long long expected, att_op
         ATT_ERROR_MESSAGE(result, "%lld", "%lld", expected, op);
     }
 
-    return test;
+    return (unsigned int)test;
 }
 
 ATT_API unsigned int att_assert_u_llu(unsigned long long result, unsigned long long expected, att_op op, const char *description, const char *file, unsigned int line) {
@@ -1322,40 +1313,40 @@ ATT_API unsigned int att_assert_u_llu(unsigned long long result, unsigned long l
         ATT_ERROR_MESSAGE(result, "%llu", "%llu", expected, op);
     }
 
-    return test;
+    return (unsigned int)test;
 }
 
 ATT_API unsigned int att_assert_f(float result, float expected, att_op op, const char *description, const char *file, unsigned int line) {
-    int equal = (result == expected) || ((result > expected ? result - expected : expected - result) <= att_float_epsilon);
+    int equal = (result == expected) || ((long double)(result > expected ? result - expected : expected - result) <= att_float_epsilon);
     int test = att_assert("float", op == ATT_OP_EQ ? equal : (op == ATT_OP_NE ? !equal : ATT_COMPARE(result, expected, op)), description);
 
     if(!test) {
-        ATT_ERROR_MESSAGE(result, "%.9g", "%.9g", expected, op);
+        ATT_ERROR_MESSAGE((double)result, "%.9g", "%.9g", (double)expected, op);
     }
 
-    return test;
+    return (unsigned int)test;
 }
 
 ATT_API unsigned int att_assert_lf(double result, double expected, att_op op, const char *description, const char *file, unsigned int line) {
-    int equal = (result == expected) || ((result > expected ? result - expected : expected - result) <= att_float_epsilon);
+    int equal = (result == expected) || ((long double)(result > expected ? result - expected : expected - result) <= att_float_epsilon);
     int test = att_assert("double", op == ATT_OP_EQ ? equal : (op == ATT_OP_NE ? !equal : ATT_COMPARE(result, expected, op)), description);
 
     if(!test) {
         ATT_ERROR_MESSAGE(result, "%.17g", "%.17g", expected, op);
     }
 
-    return test;
+    return (unsigned int)test;
 }
 
 ATT_API unsigned int att_assert_Lf(long double result, long double expected, att_op op, const char *description, const char *file, unsigned int line) {
-    int equal = (result == expected) || ((result > expected ? result - expected : expected - result) <= att_float_epsilon);
+    int equal = (result == expected) || ((long double)(result > expected ? result - expected : expected - result) <= att_float_epsilon);
     int test = att_assert("long double", op == ATT_OP_EQ ? equal : (op == ATT_OP_NE ? !equal : ATT_COMPARE(result, expected, op)), description);
 
     if(!test) {
         ATT_ERROR_MESSAGE(result, "%.21Lg", "%.21Lg", expected, op);
     }
 
-    return test;
+    return (unsigned int)test;
 }
 
 ATT_API unsigned int att_assert_p_p(void *result, void *expected, att_op op, const char *description, const char *file, unsigned int line) {
@@ -1369,7 +1360,7 @@ ATT_API unsigned int att_assert_p_p(void *result, void *expected, att_op op, con
         ATT_ERROR_MESSAGE(result, "%p", "%p", expected, op);
     }
 
-    return test;
+    return (unsigned int)test;
 }
 
 ATT_API unsigned int att_assert_cp_p(const void *result, const void *expected, att_op op, const char *description, const char *file, unsigned int line) {
@@ -1383,7 +1374,7 @@ ATT_API unsigned int att_assert_cp_p(const void *result, const void *expected, a
         ATT_ERROR_MESSAGE(result, "%p", "%p", expected, op);
     }
 
-    return test;
+    return (unsigned int)test;
 }
 
 ATT_API unsigned int att_assert_b(bool result, bool expected, att_op op, const char *description, const char *file, unsigned int line) {
@@ -1397,14 +1388,14 @@ ATT_API unsigned int att_assert_b(bool result, bool expected, att_op op, const c
         ATT_ERROR_MESSAGE(result, "%d", "%d", expected, op);
     }
 
-    return test;
+    return (unsigned int)test;
 }
 
 ATT_API unsigned int att_assert_unknown(const void *result, const void *expected, att_op op, const char *description, const char *file, unsigned int line) {
     int test;
 
     if(att_generic_callback_fn) {
-        test = att_assert("callback", att_generic_callback_fn((void *)result, (void *)expected, op, description), description);
+        test = att_assert("callback", att_generic_callback_fn(ATT_UNCONST(result), ATT_UNCONST(expected), op, description), description);
     } else if(op != ATT_OP_EQ && op != ATT_OP_NE) {
         return att_assert_op_unsupported(op, description, file, line);
     } else {
@@ -1415,7 +1406,7 @@ ATT_API unsigned int att_assert_unknown(const void *result, const void *expected
         ATT_ERROR_MESSAGE(result, "%p", "%p", expected, op);
     }
 
-    return test;
+    return (unsigned int)test;
 }
 #endif /* ATT_IMPLEMENTATION_INCLUDED */
 #endif /* ATT_IMPLEMENTATION */

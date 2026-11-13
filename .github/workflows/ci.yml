@@ -33,6 +33,10 @@ jobs:
       - name: C++ tests
         run: make test-cpp CXX=${{ matrix.cxx }}
 
+      # The header must compile without warnings under strict flags.
+      - name: Strict warnings
+        run: make strict CC=${{ matrix.cc }} CXX=${{ matrix.cxx }}
+
       # attractor.h is partly generated: the committed file must match the generator.
       - name: Header is in sync with the generator
         run: git diff --exit-code -- attractor.h

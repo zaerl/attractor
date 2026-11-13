@@ -7,6 +7,10 @@ CFLAGS = -Wall -Wextra -Wno-unused-parameter -std=c11
 CXX = g++
 CXXFLAGS = -Wall -Wextra -Wno-unused-parameter -std=c++17
 
+# Warnings the header must stay free of, for users who build with strict flags
+STRICT_FLAGS = -Wall -Wextra -Wpedantic -Wshadow -Wconversion -Wsign-conversion -Wformat=2 \
+	-Wcast-qual -Wdouble-promotion -Wundef -Wno-unused-parameter -Werror
+
 SRC_DIR = .
 TEST_DIR = tests
 BIN_DIR = bin
@@ -75,6 +79,11 @@ test-golden: $(GOLDEN_EXECUTABLE)
 test-cpp: $(TEST_EXECUTABLE_CPP)
 	$(TEST_EXECUTABLE_CPP)
 
+# Compile the header (implementation and macros) with strict warnings as errors, in C and C++
+strict: $(ATTRACTOR_H)
+	$(CC) -std=c11 $(STRICT_FLAGS) -Wstrict-prototypes -Wmissing-prototypes -fsyntax-only $(GOLDEN_SRC)
+	$(CXX) -std=c++17 -x c++ $(STRICT_FLAGS) -fsyntax-only $(GOLDEN_SRC)
+
 # Force regeneration
 generate:
 	@mkdir -p $(BIN_DIR)
@@ -84,4 +93,4 @@ generate:
 clean:
 	rm -f $(TEST_OBJS) $(TEST_OBJS_CPP) $(TEST_EXECUTABLE) $(TEST_EXECUTABLE_CPP) $(GOLDEN_EXECUTABLE) $(GOLDEN_ACTUAL) $(GEN_STAMP)
 
-.PHONY: all clean generate test test-cpp test-golden
+.PHONY: all clean generate strict test test-cpp test-golden

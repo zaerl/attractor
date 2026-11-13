@@ -31,7 +31,7 @@ static void values(void) {
     const char *null_string = NULL;
     unsigned char buffer_1[3] = { 1, 2, 3 };
     unsigned char buffer_2[3] = { 1, 9, 3 };
-    _Bool flag = 1;
+    bool flag = 1;
 
     ATT_ASSERT(negative, 'a', "negative char");
     ATT_ASSERT(newline, 'a', "control char");
