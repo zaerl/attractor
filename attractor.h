@@ -473,6 +473,13 @@ inline unsigned int att_assert_cpp(T *result, long expected, att_op op, const ch
     return att_assert_unknown((const void *)result, att_pointer_from_long<void>(expected), op,
         description, file, line);
 }
+
+// NULL is the plain integer 0 on some compilers (MSVC) instead of a long constant.
+template <typename T>
+inline unsigned int att_assert_cpp(T *result, int expected, att_op op, const char *description,
+    const char *file, unsigned int line) {
+    return att_assert_cpp(result, static_cast<long>(expected), op, description, file, line);
+}
 #endif
 
 #endif /* ATTRACTOR_H */
