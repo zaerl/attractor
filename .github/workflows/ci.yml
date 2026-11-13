@@ -1,0 +1,74 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  unix:
+    name: ${{ matrix.os }} / ${{ matrix.cc }}
+    runs-on: ${{ matrix.os }}
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - { os: ubuntu-latest, cc: gcc, cxx: g++ }
+          - { os: ubuntu-latest, cc: clang, cxx: clang++ }
+          - { os: macos-latest, cc: clang, cxx: clang++ }
+    steps:
+      - uses: actions/checkout@v4
+
+      # Runs the generator first, then the golden test and the C suite.
+      - name: C tests
+        run: make test CC=${{ matrix.cc }}
+
+      - name: C++ tests
+        run: make test-cpp CXX=${{ matrix.cxx }}
+
+      # attractor.h is partly generated: the committed file must match the generator.
+      - name: Header is in sync with the generator
+        run: git diff --exit-code -- attractor.h
+
+  sanitizers:
+    name: ubuntu-latest / clang / ASan + UBSan
+    runs-on: ubuntu-latest
+    env:
+      SANITIZE: -fsanitize=address,undefined -fno-sanitize-recover=undefined -g
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: C tests
+        run: make test CC=clang CFLAGS="-Wall -Wextra -Wno-unused-parameter -std=c11 $SANITIZE"
+
+      - name: C++ tests
+        run: make test-cpp CXX=clang++ CXXFLAGS="-Wall -Wextra -Wno-unused-parameter -std=c++17 $SANITIZE"
+
+  windows:
+    name: windows-latest / msvc
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: ilammy/msvc-dev-cmd@v1
+
+      # The Makefile targets Unix tools, so MSVC builds the suite directly. The golden test is
+      # skipped here: its expected output has Unix paths and line endings.
+      - name: C tests
+        shell: cmd
+        run: |
+          cl /nologo /std:c11 /W3 /D_CRT_SECURE_NO_WARNINGS /Fe:test.exe tests\*.c || exit /b 1
+          test.exe
+
+      - name: C++ tests
+        shell: cmd
+        run: |
+          cl /nologo /std:c++17 /EHsc /TP /W3 /D_CRT_SECURE_NO_WARNINGS /Fe:test-cpp.exe tests\*.c || exit /b 1
+          test-cpp.exe
