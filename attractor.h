@@ -1075,6 +1075,11 @@ static int att_test_matches(const char *name, const char *filter) {
 
 // Monotonic wall-clock time in seconds. The Win32 counter does not depend on the C runtime, so
 // it also works with the legacy msvcrt.dll, which has no timespec_get().
+//
+// clock_gettime() is POSIX: strict ISO C modes (-std=c11) hide it unless the includer defines a
+// feature macro such as _POSIX_C_SOURCE before the first system header. A header cannot do that
+// reliably, so when the monotonic clock is not visible fall back to the C11 timespec_get(),
+// which is wall-clock time and can jump if the system clock is adjusted.
 static double monotonic_seconds(void) {
 #ifdef _WIN32
     LARGE_INTEGER frequency, counter;
@@ -1083,12 +1088,20 @@ static double monotonic_seconds(void) {
     QueryPerformanceCounter(&counter);
 
     return (double)counter.QuadPart / (double)frequency.QuadPart;
-#else
+#elif defined(CLOCK_MONOTONIC)
     struct timespec now;
 
     clock_gettime(CLOCK_MONOTONIC, &now);
 
     return (double)now.tv_sec + (double)now.tv_nsec / 1e9;
+#elif defined(TIME_UTC)
+    struct timespec now;
+
+    timespec_get(&now, TIME_UTC);
+
+    return (double)now.tv_sec + (double)now.tv_nsec / 1e9;
+#else
+    return (double)clock() / (double)CLOCKS_PER_SEC;
 #endif
 }
 
