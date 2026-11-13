@@ -24,9 +24,16 @@
 #include <stddef.h>
 
 #ifdef __cplusplus
-// The C++ side uses if constexpr, std::void_t and the _v type traits.
-#if (defined(_MSVC_LANG) ? _MSVC_LANG : __cplusplus) < 201703L
-#error "attractor.h requires C++17 or later"
+// MSVC reports __cplusplus as 199711L unless /Zc:__cplusplus is passed, while _MSVC_LANG
+// always holds the selected standard. Use whichever is newer.
+#if defined(_MSVC_LANG) && _MSVC_LANG > __cplusplus
+    #define MJB_CPLUSPLUS _MSVC_LANG
+#else
+    #define MJB_CPLUSPLUS __cplusplus
+#endif
+
+#if MJB_CPLUSPLUS < 201703L
+    #error "attractor.h requires C++17 or later"
 #endif
 
 #include <cstddef>
@@ -35,34 +42,46 @@
 #include <type_traits>
 
 extern "C" {
+#else
+    #if !defined(__STDC_VERSION__) || __STDC_VERSION__ < 201112L
+        #error "attractor.h requires C11 or later"
+    #endif
 #endif
 
 #ifndef ATT_API
-#define ATT_API
+    #define ATT_API
 #endif
 
 #ifndef ATT_MAX_TESTS
-#define ATT_MAX_TESTS 512
+    #define ATT_MAX_TESTS 512
 #endif
 
 // Verbosity: 0 = only failures, 1 = plus the test case names, 2 = plus a dot per assertion,
 // 3 = a line per assertion, 4 = like 3 plus a "Valid/run: X/Y" summary after each test case.
 #ifndef ATT_VERBOSE
-#define ATT_VERBOSE 2
+    #define ATT_VERBOSE 2
 #endif
 
 #ifndef ATT_SHOW_ERROR
-#define ATT_SHOW_ERROR 1
+    #define ATT_SHOW_ERROR 1
 #endif
 
 // Emit TAP (Test Anything Protocol) output.
 #ifndef ATT_TAP
-#define ATT_TAP 0
+    #define ATT_TAP 0
 #endif
 
 // Tolerance for float, double and long double comparisons.
 #ifndef ATT_FLOAT_EPSILON
-#define ATT_FLOAT_EPSILON 0
+    #define ATT_FLOAT_EPSILON 0
+#endif
+
+#ifndef ATT_STRING_AS_POINTERS
+    #define ATT_STRING_AS_POINTERS 0
+#endif
+
+#ifndef ATT_CUSTOM_TYPES
+    #define ATT_CUSTOM_TYPES
 #endif
 
 // Comparison operator applied by an assertion.
@@ -74,14 +93,6 @@ typedef enum att_op {
     ATT_OP_GT,
     ATT_OP_GE
 } att_op;
-
-#ifndef ATT_STRING_AS_POINTERS
-#define ATT_STRING_AS_POINTERS 0
-#endif
-
-#ifndef ATT_CUSTOM_TYPES
-#define ATT_CUSTOM_TYPES
-#endif
 
 // clang-format off
 #ifndef __cplusplus
