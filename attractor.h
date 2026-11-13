@@ -23,6 +23,13 @@
 #include <stdbool.h>
 #include <stddef.h>
 
+#define ATT_VERSION_NUMBER 0x110 // MAJOR << 8 | MINOR << 4 | REVISION
+#define ATT_VERSION_MAJOR 1
+#define ATT_VERSION_MINOR 1
+#define ATT_VERSION_REVISION 0
+
+#define ATT_VERSION "1.1.0"
+
 #ifdef __cplusplus
 // MSVC reports __cplusplus as 199711L unless /Zc:__cplusplus is passed, while _MSVC_LANG
 // always holds the selected standard. Use whichever is newer.
@@ -1044,6 +1051,10 @@ int att_run_tests(const char *filter) {
         } else if(att_verbose == 1 || att_verbose >= 3) {
             att_printf(att_show_colors ? "Test: \x1b[1;32m%s\x1b[0m\n" : "Test: %s\n", att_tests[i].name);
         } else if(att_verbose == 2) {
+            if(att_dots_pending) {
+                att_puts("\n");
+            }
+
             // The dots of the case follow the name on the same line.
             att_printf(att_show_colors ? "Test: \x1b[1;32m%s\x1b[0m " : "Test: %s ", att_tests[i].name);
             att_dots_pending = 1;

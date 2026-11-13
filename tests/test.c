@@ -39,7 +39,7 @@ int main(int argc, const char *argv[]) {
     }
 
     timespec_get(&start, TIME_UTC);
-    att_set_verbose(1);
+    att_set_verbose(2);
     att_run_tests(filter);
 
     int failed = att_report();
