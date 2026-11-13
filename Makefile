@@ -71,10 +71,11 @@ $(GOLDEN_EXECUTABLE): $(GOLDEN_SRC) $(ATTRACTOR_H)
 test: $(TEST_EXECUTABLE) test-golden
 	$(TEST_EXECUTABLE)
 
-# The failing program must exit with 1 and print exactly the expected output
+# The failing program must exit with 1 and print exactly the expected output. Line endings are
+# ignored: on Windows stdout is in text mode.
 test-golden: $(GOLDEN_EXECUTABLE)
 	$(GOLDEN_EXECUTABLE) > $(GOLDEN_ACTUAL); test $$? -eq 1
-	diff -u $(GOLDEN_EXPECTED) $(GOLDEN_ACTUAL)
+	diff -u --strip-trailing-cr $(GOLDEN_EXPECTED) $(GOLDEN_ACTUAL)
 
 test-cpp: $(TEST_EXECUTABLE_CPP)
 	$(TEST_EXECUTABLE_CPP)

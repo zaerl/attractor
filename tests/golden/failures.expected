@@ -40,6 +40,9 @@ tests/golden/failures.c:48: condition: Expected true, got false
 F
 tests/golden/failures.c:49: memory: Byte 1: expected 0x09, got 0x02
 
+F
+tests/golden/failures.c:50: long double: Expected 2.5, got 1.5
+
 Test: first_failure F
 tests/golden/failures.c:14: first case fails: Expected 2, got 1
 
@@ -55,37 +58,39 @@ Test cases valid/run: 1/1
 F
 No test case matches the filter "no_such_case"
 
-not ok 19 - negative char
+not ok 20 - negative char
 # tests/golden/failures.c:36: Expected a, got \x80
-not ok 20 - control char
+not ok 21 - control char
 # tests/golden/failures.c:37: Expected a, got \x0A
-not ok 21 - int
+not ok 22 - int
 # tests/golden/failures.c:38: Expected 3, got 2
-not ok 22 - int with operator
+not ok 23 - int with operator
 # tests/golden/failures.c:39: Expected >= 3, got 2
-not ok 23 - int against double
+not ok 24 - int against double
 # tests/golden/failures.c:40: Expected 2.5, got 2
-not ok 24 - unsigned against negative
+not ok 25 - unsigned against negative
 # tests/golden/failures.c:41: Expected -1, got 4294967295
-not ok 25 - negative against unsigned
+not ok 26 - negative against unsigned
 # tests/golden/failures.c:42: Expected > 1, got -1
-not ok 26 - double
+not ok 27 - double
 # tests/golden/failures.c:43: Expected 2.5, got 1.5
-not ok 27 - strings
+not ok 28 - strings
 # tests/golden/failures.c:44: Expected "bar", got "foo"
-not ok 28 - NULL string
+not ok 29 - NULL string
 # tests/golden/failures.c:45: Expected "bar", got NULL
-not ok 29 - NULL expected string
+not ok 30 - NULL expected string
 # tests/golden/failures.c:46: Expected NULL, got "foo"
-not ok 30 - unsupported operator
+not ok 31 - unsupported operator
 # tests/golden/failures.c:47: Operator < is not supported for this type
-not ok 31 - condition
+not ok 32 - condition
 # tests/golden/failures.c:48: Expected true, got false
-not ok 32 - memory
+not ok 33 - memory
 # tests/golden/failures.c:49: Byte 1: expected 0x09, got 0x02
-not ok 33 - has a \# hash and a line break
-# tests/golden/failures.c:65: Expected 2, got 1
-not ok 34 - A test case matches the filter
+not ok 34 - long double
+# tests/golden/failures.c:50: Expected 2.5, got 1.5
+not ok 35 - has a \# hash and a line break
+# tests/golden/failures.c:66: Expected 2, got 1
+not ok 36 - A test case matches the filter
 # No test case matches the filter "no_such_case"
-1..34
-# Tests valid/run: 1/34
+1..36
+# Tests valid/run: 1/36

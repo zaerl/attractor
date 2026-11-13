@@ -14,7 +14,8 @@
 #include "../attractor.h"
 
 int main(int argc, const char *argv[]) {
-    struct timespec start, end;
+    // clock() is used instead of timespec_get(), which the legacy msvcrt.dll does not provide.
+    clock_t start, end;
     double elapsed;
     const char *filter = NULL;
     int i;
@@ -38,14 +39,14 @@ int main(int argc, const char *argv[]) {
         }
     }
 
-    timespec_get(&start, TIME_UTC);
+    start = clock();
     att_set_verbose(2);
     att_run_tests(filter);
 
     int failed = att_report();
 
-    timespec_get(&end, TIME_UTC);
-    elapsed = (double)(end.tv_sec - start.tv_sec) + (double)(end.tv_nsec - start.tv_nsec) / 1e9;
+    end = clock();
+    elapsed = (double)(end - start) / CLOCKS_PER_SEC;
 
     printf("Execution time: %.4f seconds\n", elapsed);
 
