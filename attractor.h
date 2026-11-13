@@ -674,7 +674,7 @@ static unsigned int att_tap = ATT_TAP;
 static int att_show_colors = 0;
 // Whether stdout currently ends with an unterminated line of verbose = 1 dots.
 static int att_dots_pending = 0;
-static long double att_float_epsilon = ATT_FLOAT_EPSILON;
+static long double att_float_epsilon = (long double)(ATT_FLOAT_EPSILON);
 
 // A callback to be used when the default comparison fails.
 static att_generic_callback att_generic_callback_fn = NULL;
@@ -720,7 +720,7 @@ double att_get_double_epsilon(void) {
 }
 
 void att_set_double_epsilon(double epsilon) {
-    att_float_epsilon = epsilon;
+    att_float_epsilon = (long double)epsilon;
 }
 
 void att_set_generic_callback(att_generic_callback callback) {
