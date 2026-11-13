@@ -38,6 +38,16 @@ ATT_TEST(floats_epsilon) {
     ATT_ASSERT(att_get_float_epsilon() == 0, 1, "epsilon reset to 0");
 }
 
+ATT_TEST(floats_double_epsilon) {
+    // The double accessors read and write the same tolerance as the long double ones.
+    att_set_double_epsilon(0.25);
+    ATT_ASSERT(att_get_double_epsilon(), 0.25, "double epsilon is set");
+    ATT_ASSERT_TRUE(att_get_float_epsilon() == 0.25L, "long double epsilon follows");
+    ATT_ASSERT(1.0, 1.2, "1.0 = 1.2 within 0.25");
+    att_set_double_epsilon(0);
+    ATT_ASSERT_NE(1.0, 1.2, "1.0 != 1.2 exactly");
+}
+
 ATT_TEST(floats_edge) {
     double nan_v = NAN;
     double inf_v = INFINITY;

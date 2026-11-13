@@ -24,6 +24,12 @@ TEST_OBJS_CPP = $(patsubst $(TEST_DIR)/%.c, $(BIN_DIR)/%.cpp.o, $(TEST_SRCS))
 TEST_EXECUTABLE = $(BIN_DIR)/test
 TEST_EXECUTABLE_CPP = $(BIN_DIR)/test-cpp
 
+# Golden test: a program whose assertions all fail, and its expected output
+GOLDEN_SRC = $(TEST_DIR)/golden/failures.c
+GOLDEN_EXPECTED = $(TEST_DIR)/golden/failures.expected
+GOLDEN_EXECUTABLE = $(BIN_DIR)/failures
+GOLDEN_ACTUAL = $(BIN_DIR)/failures.actual
+
 all: $(TEST_EXECUTABLE)
 
 # Generate attractor.h from the script
@@ -54,8 +60,17 @@ $(TEST_EXECUTABLE): $(TEST_OBJS)
 $(TEST_EXECUTABLE_CPP): $(TEST_OBJS_CPP)
 	$(CXX) $(CXXFLAGS) $(INCLUDES) $^ -o $@
 
-test: $(TEST_EXECUTABLE)
+$(GOLDEN_EXECUTABLE): $(GOLDEN_SRC) $(ATTRACTOR_H)
+	@mkdir -p $(BIN_DIR)
+	$(CC) $(CFLAGS) $(INCLUDES) $< -o $@
+
+test: $(TEST_EXECUTABLE) test-golden
 	$(TEST_EXECUTABLE)
+
+# The failing program must exit with 1 and print exactly the expected output
+test-golden: $(GOLDEN_EXECUTABLE)
+	$(GOLDEN_EXECUTABLE) > $(GOLDEN_ACTUAL); test $$? -eq 1
+	diff -u $(GOLDEN_EXPECTED) $(GOLDEN_ACTUAL)
 
 test-cpp: $(TEST_EXECUTABLE_CPP)
 	$(TEST_EXECUTABLE_CPP)
@@ -67,6 +82,6 @@ generate:
 	@touch $(GEN_STAMP)
 
 clean:
-	rm -f $(TEST_OBJS) $(TEST_OBJS_CPP) $(TEST_EXECUTABLE) $(TEST_EXECUTABLE_CPP) $(GEN_STAMP)
+	rm -f $(TEST_OBJS) $(TEST_OBJS_CPP) $(TEST_EXECUTABLE) $(TEST_EXECUTABLE_CPP) $(GOLDEN_EXECUTABLE) $(GOLDEN_ACTUAL) $(GEN_STAMP)
 
-.PHONY: all clean generate test test-cpp
+.PHONY: all clean generate test test-cpp test-golden

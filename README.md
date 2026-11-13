@@ -47,9 +47,10 @@ The `ATT_ASSERT` macro accepts these types:
 14. `double`
 15. `long double`
 16. `void*`
-17. `_Bool`
+17. `const void*`
+18. `_Bool`
 
-In case of unknown type the input is assumed to be `void*`.
+In case of unknown type the input is assumed to be `const void*`.
 
 Beyond equality, the `ATT_ASSERT_NE`, `ATT_ASSERT_LT`, `ATT_ASSERT_LE`, `ATT_ASSERT_GT` and
 `ATT_ASSERT_GE` macros compare with the other operators, accepting the same types and keeping the
@@ -126,7 +127,9 @@ callback count toward the case that is about to run.
 Registration happens through compiler constructors (a static initializer in C++,
 `__attribute__((constructor))` on GCC/Clang, the CRT initializer section on MSVC compiling C). On a
 C compiler with none of these, the header defines `ATT_TEST_MANUAL` and you register the cases
-yourself with `att_register_test("name", att_test_fn_name)`. The registry holds `ATT_MAX_TESTS`
+yourself with `att_register_test("name", att_test_fn_name)`. `att_register_test_data("name", fn,
+data)` registers a `void fn(void *data)` case that is called with `data`, which is what bindings
+from other languages need to register closures. Names are not copied. The registry holds `ATT_MAX_TESTS`
 cases (512 by default); define a bigger value in the `ATT_IMPLEMENTATION` file if you need more. In
 TAP mode each case is announced with a `# test: name` diagnostic line.
 
@@ -160,6 +163,12 @@ TAP mode each case is announced with a `# test: name` diagnostic line.
 19. `void att_register_test(const char *name, att_test_fn fn)` register a test case manually.
 20. `void att_set_test_start_callback(att_test_start_callback callback)` set a callback to call
     before each test case run by `att_run_tests`.
+21. `void att_register_test_data(const char *name, att_test_data_fn fn, void *data)` register a
+    test case that is called with `data`.
+22. `void att_set_double_epsilon(double epsilon)` and `double att_get_double_epsilon(void)` the
+    float tolerance as a `double`, for callers without a `long double` type.
+23. `void att_set_output_callback(att_output_callback callback, void *data)` send the output to a
+    callback instead of stdout.
 
 ## Examples
 
@@ -270,7 +279,9 @@ Tests valid/run: 2/3
 ## Advanced usage
 
 Check the [tests](tests) folder for advanced examples: every file defines its test cases with
-`ATT_TEST` and [tests/test.c](tests/test.c) is the runner.
+`ATT_TEST` and [tests/test.c](tests/test.c) is the runner. The failure messages are tested by
+[tests/golden/failures.c](tests/golden/failures.c), a program whose assertions all fail: `make test`
+compares its output with [tests/golden/failures.expected](tests/golden/failures.expected).
 
 ### Threading
 
@@ -321,6 +332,22 @@ not ok 2 - 2.0 == 2.5
 1..2
 # Tests valid/run: 1/2
 ```
+
+### Output callback
+
+By default everything is printed to stdout. `att_set_output_callback(callback, data)` sends the
+output to a function instead, for example to capture it or to print it through another runtime's
+own stdout. The callback receives fragments of text, not necessarily whole lines:
+
+```c
+static void to_stderr(const char *text, void *data) {
+    fputs(text, stderr);
+}
+
+att_set_output_callback(to_stderr, NULL);
+```
+
+Pass `NULL` to print to stdout again.
 
 ### Custom callback
 
