@@ -1,6 +1,7 @@
 # Attractor
 
-Attractor is a lightweight single-header unit test framework written in C11, usable from C++ too.
+Attractor is a lightweight single-header unit test framework written in C11, usable from C++17 (or
+later) too.
 
 ## Installation
 

@@ -120,6 +120,11 @@ function fn_decl(type_info, unsigned, is_const) {
         type = type_info.alt_name;
     }
 
+    // <stdbool.h> spells the type the same way in C and C++, which has no _Bool.
+    if(type === '_Bool') {
+        type = 'bool';
+    }
+
     // A string is only read, so "char *" accepts a "const char *" expected value too.
     if(type === 'char *') {
         type = 'const char *';
