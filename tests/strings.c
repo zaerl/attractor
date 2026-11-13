@@ -22,6 +22,9 @@ ATT_TEST(strings) {
     ATT_ASSERT(cstr, cstr2, "Const \"qux\" = const \"qux\"");
 
     ATT_ASSERT((char*)NULL, NULL, "NULL");
+    // NULL is the plain integer 0 in C++ on some compilers.
+    ATT_ASSERT((char*)NULL, 0, "NULL = 0");
+    ATT_ASSERT((const char*)NULL, 0, "const NULL = 0");
 #ifdef __cplusplus
     ATT_ASSERT((char*)nullptr, nullptr, "nullptr");
 
