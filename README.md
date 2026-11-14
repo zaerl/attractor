@@ -5,8 +5,8 @@ later) too.
 
 ## Installation
 
-Attractor is a single-header library: copy `attractor.h` in your test folder. In exactly one .c/.cpp
-source file define `ATT_IMPLEMENTATION` before including the header:
+Attractor is a single-header library: copy `attractor.h` into your test folder. In exactly one
+.c/.cpp source file define `ATT_IMPLEMENTATION` before including the header:
 
 ```c
 // define ATT_IMPLEMENTATION for only *one* .c/.cpp
@@ -49,9 +49,18 @@ The `ATT_ASSERT` macro accepts these types:
 15. `long double`
 16. `void*`
 17. `const void*`
-18. `_Bool`
+18. `_Bool` (`bool`)
 
 In case of unknown type the input is assumed to be `const void*`.
+
+> [!IMPORTANT]
+> The expected value is never silently converted (type coercion) to the type of the tested one. An
+> integer compared with a floating point value is compared as floating point, and a signed integer
+> compared with an unsigned one is compared mathematically: `ATT_ASSERT_LT(-1, 1u, ...)` passes,
+> because a negative number is smaller than every unsigned one.
+
+In C++ the two values are converted to their common type, `std::string` is accepted too, and
+comparing two non-pointer values of an unsupported type is a compile error.
 
 Beyond equality, the `ATT_ASSERT_NE`, `ATT_ASSERT_LT`, `ATT_ASSERT_LE`, `ATT_ASSERT_GT` and
 `ATT_ASSERT_GE` macros compare with the other operators, accepting the same types and keeping the
@@ -76,7 +85,7 @@ ATT_ASSERT_TRUE(is_valid(input), "input is valid");
 ATT_ASSERT_MEM(buffer, expected_buffer, sizeof(buffer), "buffers are equal");
 ```
 
-`ATT_ASSERT_TRUE` passes when the condition is true. `ATT_ASSERT_MEM` compares two memory regions
+`ATT_ASSERT_TRUE` passes when the condition is _true_. `ATT_ASSERT_MEM` compares two memory regions
 byte by byte and, on failure, reports the offset and value of the first differing byte.
 
 ## Test cases
@@ -98,6 +107,7 @@ ATT_TEST(strings_hello) {
 
 int main(void) {
     att_run_tests(NULL);
+
     return att_report();
 }
 ```
@@ -106,70 +116,110 @@ int main(void) {
 `filter` is `NULL`. A test case fails when at least one of its assertions fails; failed cases are
 listed in a recap and counted in a `Test cases valid/run: X/Y` summary. The function returns the
 number of failed cases and composes with `att_report()`, which keeps printing the assertion summary
-and producing the exit code:
+and producing the exit code.
+
+A filter that matches no test case is reported (`No test case matches the filter "..."`), counted as
+a failed assertion and makes `att_run_tests()` return `-1`:
 
 ```
 $ ./test
 Test: math_add .
 Test: strings_hello .
+Execution time: 0.0001 seconds
 Test cases valid/run: 2/2
 Tests valid/run: 2/2
 ```
 
-The library takes no command line options itself; the host program stays in charge of its `argv`.
-`att_get_test_name(index)` enumerates the registered names (returning `NULL` past the end), which
-is all a `--list` option needs. See [tests/test.c](tests/test.c) for a small runner implementing
-`--list`/`-l` and `--filter <substring>`/`-f`/`--filter=<substring>` on top of these two calls.
+Define `ATT_SHOW_EXECUTION_TIME` to `0` or call `att_set_show_execution_time(0)` to hide that
+execution time line.
 
 For per-case setup or logging, `att_set_test_start_callback()` registers a callback that
 `att_run_tests()` calls before each test case, passing the case name. Assertions made inside the
 callback count toward the case that is about to run.
 
-Registration happens through compiler constructors (a static initializer in C++,
-`__attribute__((constructor))` on GCC/Clang, the CRT initializer section on MSVC compiling C). On a
-C compiler with none of these, the header defines `ATT_TEST_MANUAL` and you register the cases
-yourself with `att_register_test("name", att_test_fn_name)`. `att_register_test_data("name", fn,
-data)` registers a `void fn(void *data)` case that is called with `data`, which is what bindings
-from other languages need to register closures. Names are not copied. The registry holds `ATT_MAX_TESTS`
-cases (512 by default); define a bigger value in the `ATT_IMPLEMENTATION` file if you need more. In
-TAP mode each case is announced with a `# test: name` diagnostic line.
+The registry holds `ATT_MAX_TESTS` cases (512 by default). Define a bigger value in the
+`ATT_IMPLEMENTATION` file if you need more. In TAP mode each case is announced with a `# test: name`
+diagnostic line.
 
 ## API
 
-1. `ATT_ASSERT(value, expected, description)` you pass the value to test, the expected one and a
-   description of the test.
-2. `ATT_ASSERT_NE/LT/LE/GT/GE(value, expected, description)` same as `ATT_ASSERT` but compare with
-   `!=`, `<`, `<=`, `>` or `>=`.
-3. `ATT_ASSERT_TRUE(condition, description)` assert that a condition is true.
-4. `ATT_ASSERT_MEM(value, expected, size, description)` assert that two memory regions of `size`
-   bytes are equal.
-5. `int att_report(void)` print the `Tests valid/run: X/Y` summary and return `0` if every test
-   passed, `1` otherwise. Meant to be used as the return value of `main()`.
-6. `void att_set_verbose(unsigned int verbose)` set verbosity (0 to 4).
-7. `void att_set_show_error(unsigned int show_error)` set to show errors.
-8. `void att_set_generic_callback(att_generic_callback callback)` set a callback to run for generic
-   tests
-9. `void att_set_test_callback(att_test_callback callback)` set a callback to call for all tests.
-10. `unsigned int att_get_valid_tests(void)` return the count of valid tests.
-11. `unsigned int att_get_total_tests(void)` return the count of run tests.
-12. `void att_set_float_epsilon(long double epsilon)` set the tolerance for float comparisons.
-13. `long double att_get_float_epsilon(void)` return the current float comparison tolerance.
-14. `void att_set_tap(unsigned int tap)` enable TAP (Test Anything Protocol) output.
-15. `ATT_TEST(name)` define a named test case and register it automatically.
-16. `int att_run_tests(const char *filter)` run the registered test cases whose name contains
-    `filter` (all of them when `NULL`); return the number of failed cases.
-17. `unsigned int att_get_test_count(void)` return the count of registered test cases.
-18. `const char *att_get_test_name(unsigned int index)` return the name of the test case at
-    `index`, or `NULL` when out of range.
-19. `void att_register_test(const char *name, att_test_fn fn)` register a test case manually.
-20. `void att_set_test_start_callback(att_test_start_callback callback)` set a callback to call
-    before each test case run by `att_run_tests`.
-21. `void att_register_test_data(const char *name, att_test_data_fn fn, void *data)` register a
-    test case that is called with `data`.
-22. `void att_set_double_epsilon(double epsilon)` and `double att_get_double_epsilon(void)` the
-    float tolerance as a `double`, for callers without a `long double` type.
-23. `void att_set_output_callback(att_output_callback callback, void *data)` send the output to a
-    callback instead of stdout.
+Assertions. Each one is an expression that evaluates to non-zero when it passes:
+
+- `ATT_ASSERT(value, expected, description)` you pass the value to test, the expected one and a
+  description of the test.
+- `ATT_ASSERT_NE/LT/LE/GT/GE(value, expected, description)` same as `ATT_ASSERT` but compare with
+  `!=`, `<`, `<=`, `>` or `>=`.
+- `ATT_ASSERT_TRUE(condition, description)` assert that a condition is true.
+- `ATT_ASSERT_MEM(value, expected, size, description)` assert that two memory regions of `size`
+  bytes are equal. Two `NULL` pointers are equal, a `NULL` and a non-`NULL` one are not.
+
+Test cases:
+
+- `ATT_TEST(name)` define a named test case and register it automatically.
+- `int att_run_tests(const char *filter)` run the registered test cases whose name contains
+  `filter` (all of them when `NULL`); return the number of failed cases, or `-1` when the filter
+  matches no test case.
+- `unsigned int att_get_test_count(void)` return the count of registered test cases.
+- `const char *att_get_test_name(unsigned int index)` return the name of the test case at
+  `index`, or `NULL` when out of range.
+- `void att_register_test(const char *name, att_test_fn fn)` register a test case manually.
+- `void att_register_test_data(const char *name, att_test_data_fn fn, void *data)` register a
+  test case that is called with `data`.
+- `void att_set_test_start_callback(att_test_start_callback callback)` set a
+  `void callback(const char *name)` to call before each test case run by `att_run_tests`.
+
+Reporting:
+
+- `int att_report(void)` print the `Tests valid/run: X/Y` summary and return `0` if every test
+  passed, `1` otherwise. Meant to be used as the return value of `main()`.
+- `unsigned int att_get_valid_tests(void)` return the count of valid tests.
+- `unsigned int att_get_total_tests(void)` return the count of run tests.
+
+Settings:
+
+- `void att_set_verbose(unsigned int verbose)` set verbosity (0 to 4).
+- `void att_set_show_error(unsigned int show_error)` set to show errors.
+- `void att_set_show_execution_time(unsigned int show_execution_time)` set to show the
+  `Execution time` line printed by `att_run_tests`.
+- `void att_set_tap(unsigned int tap)` enable TAP (Test Anything Protocol) output.
+- `void att_set_float_epsilon(long double epsilon)` set the tolerance for float comparisons.
+- `long double att_get_float_epsilon(void)` return the current float comparison tolerance.
+- `void att_set_double_epsilon(double epsilon)` and `double att_get_double_epsilon(void)` the
+  float tolerance as a `double`, for callers without a `long double` type.
+
+Callbacks. Pass `NULL` to remove one:
+
+- `void att_set_output_callback(att_output_callback callback, void *data)` send the output to a
+  `void callback(const char *text, void *data)` instead of stdout.
+- `void att_set_generic_callback(att_generic_callback callback)` set an
+  `int callback(void *result, void *expected, att_op op, const char *description)` that compares
+  the values of unknown types; it returns non-zero when the assertion passes. See
+  [Custom callback](#custom-callback).
+- `void att_set_test_callback(att_test_callback callback)` set an
+  `int callback(int test, const char *description, const char *expression, const char *file,
+  unsigned int line)` that is called for every assertion: `test` is non-zero when it passed and
+  `expression` is the source text of the tested value. The return value is ignored.
+
+Compile-time configuration. Define these before including the header in the `ATT_IMPLEMENTATION`
+file:
+
+| Macro                     | Default | Meaning                                                    |
+| ------------------------- | ------- | ---------------------------------------------------------- |
+| `ATT_VERBOSE`             | `2`     | Initial verbosity (0 to 4).                                |
+| `ATT_SHOW_ERROR`          | `1`     | Print the failure details.                                 |
+| `ATT_SHOW_EXECUTION_TIME` | `1`     | Print the `Execution time` line.                           |
+| `ATT_TAP`                 | `0`     | Emit TAP output.                                           |
+| `ATT_FLOAT_EPSILON`       | `0`     | Initial tolerance for float comparisons.                   |
+| `ATT_STRING_AS_POINTERS`  | `0`     | Print strings as pointer addresses.                        |
+| `ATT_MAX_TESTS`           | `512`   | Size of the test case registry.                            |
+| `ATT_API`                 | empty   | Prefix of every public declaration (e.g. an export macro). |
+
+`ATT_CUSTOM_TYPES` is different: it changes the `ATT_ASSERT` macros, so it must be defined before
+every include of the header. See [Custom types](#custom-types).
+
+The header also defines its version: `ATT_VERSION` (the `"1.2.0"` string), `ATT_VERSION_MAJOR`,
+`ATT_VERSION_MINOR`, `ATT_VERSION_REVISION` and `ATT_VERSION_NUMBER`
+(`MAJOR << 8 | MINOR << 4 | REVISION`, so `0x120`).
 
 ## Examples
 
@@ -195,7 +245,7 @@ The default verbosity is `2`. Each level adds output on top of the previous one:
 - `0` prints only the failures.
 - `1` adds the test case names, printed by `att_run_tests()` before each case.
 - `2` adds a `.` per valid assertion and an `F` per failed one, on the same line as the case name.
-- `3` prints a `OK`/`NO` line per assertion instead of the dots.
+- `3` prints an `OK`/`FAIL` line per assertion instead of the dots.
 - `4` behaves like 3 and additionally closes every test case with its own `Valid/run: X/Y`
   summary counting only that case's assertions.
 
@@ -223,7 +273,6 @@ With `verbose = 3` the code outputs:
 OK [int] one == one
 OK [float] 2.0 == 2.0
 OK [long long] long long 3 == long long 3
-
 Tests valid/run: 3/3
 ```
 
@@ -238,6 +287,7 @@ Test: strings_hello
 OK [char *] hello == hello
 Valid/run: 1/1
 
+Execution time: 0.0001 seconds
 Test cases valid/run: 2/2
 Tests valid/run: 2/2
 ```
@@ -270,7 +320,7 @@ And with `verbose = 3` the description is already on the result line, so it is n
 
 ```
 OK [int] one == one
-NO [float] 2.0 == 2.0
+FAIL [float] 2.0 == 2.0
 test.c:9: Expected 2, got 1
 
 OK [long long] long long 3 == long long 3
@@ -279,14 +329,7 @@ Tests valid/run: 2/3
 
 ## Advanced usage
 
-Check the [tests](tests) folder for advanced examples: every file defines its test cases with
-`ATT_TEST` and [tests/test.c](tests/test.c) is the runner. The failure messages are tested by
-[tests/golden/failures.c](tests/golden/failures.c), a program whose assertions all fail: `make test`
-compares its output with [tests/golden/failures.expected](tests/golden/failures.expected).
-
-The header is kept free of warnings under strict compiler flags (`-Wpedantic`, `-Wconversion`,
-`-Wsign-conversion`, `-Wformat=2`, `-Wcast-qual` and more): `make strict` compiles it in C and C++
-with those warnings turned into errors.
+Check the [tests](tests) folder for advanced examples.
 
 ### Threading
 
@@ -338,6 +381,12 @@ not ok 2 - 2.0 == 2.5
 # Tests valid/run: 1/2
 ```
 
+### Colors
+
+When stdout is a terminal the test case names, the `F` marks, the `OK`/`FAIL` labels and the
+summaries are colored. Colors are turned off when the output is redirected, when the `NO_COLOR`
+environment variable is set and, outside Windows, when `TERM` is unset or `dumb`.
+
 ### Output callback
 
 By default everything is printed to stdout. `att_set_output_callback(callback, data)` sends the
@@ -353,6 +402,24 @@ att_set_output_callback(to_stderr, NULL);
 ```
 
 Pass `NULL` to print to stdout again.
+
+### Custom types
+
+In C, a type that is not in the list falls back to `const void*` and is compared by address. To
+route one of your types to a specific assertion function, define `ATT_CUSTOM_TYPES` as a list of
+`_Generic` associations, each followed by a comma, before including the header:
+
+```c
+typedef struct custom_struct {
+    int value;
+} custom_struct;
+
+#define ATT_CUSTOM_TYPES custom_struct*: att_assert_p_p,
+
+#include "attractor.h"
+```
+
+`ATT_CUSTOM_TYPES` is not used in C++, where any pointer type is already accepted.
 
 ### Custom callback
 
