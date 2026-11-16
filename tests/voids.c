@@ -4,8 +4,7 @@
  * This file is distributed under the MIT License. See LICENSE for details.
  */
 
- #include "../attractor.h"
-#include <stdio.h>
+#include "../attractor.h"
 
 ATT_TEST(voids) {
     ATT_ASSERT((void*)0, (void*)0, "(void*)0 = (void*)0");

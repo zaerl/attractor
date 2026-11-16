@@ -5,8 +5,6 @@
  */
 
 #include "../attractor.h"
-#include <stddef.h>
-#include <stdio.h>
 
 static int callback_called = 0;
 static const char *last_expression = NULL;

@@ -5,8 +5,6 @@
  */
 
 #include "../attractor.h"
-
-#include <stdio.h>
 #include <string.h>
 
 ATT_TEST(asserts) {

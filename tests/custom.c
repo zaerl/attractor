@@ -11,7 +11,6 @@ typedef struct custom_struct {
 #define ATT_CUSTOM_TYPES custom_struct*: att_assert_p_p,
 
 #include "../attractor.h"
-#include <stdio.h>
 
 ATT_TEST(custom) {
     custom_struct s;

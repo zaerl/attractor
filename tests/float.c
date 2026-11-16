@@ -7,7 +7,6 @@
 #include "../attractor.h"
 #include <float.h>
 #include <math.h>
-#include <stdio.h>
 
 float float_0(float result) {
     return result;
