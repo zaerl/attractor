@@ -8,6 +8,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [Unreleased]
 
 ### Added
+- Added support for `signed char` (`int8_t`) assertions, printed as numbers
 
 ### Changed
 

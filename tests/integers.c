@@ -4,6 +4,8 @@
  * This file is distributed under the MIT License. See LICENSE for details.
  */
 
+#include <stdint.h>
+
 #include "../attractor.h"
 
 int int_0(int result) {
@@ -50,4 +52,19 @@ ATT_TEST(integers_mixed) {
     ATT_ASSERT_LT(two, 2.9, "2 < 2.9");
     ATT_ASSERT(two, 2.0, "2 = 2.0");
     ATT_ASSERT_NE(max, 0.5f, "UINT_MAX != 0.5f");
+}
+
+// signed char is a type distinct from both char and unsigned char.
+ATT_TEST(integers_signed_char) {
+    signed char negative = -1;
+    int8_t small = -128;
+    int8_t big = 127;
+
+    ATT_ASSERT(negative, negative, "signed char -1 = signed char -1");
+    ATT_ASSERT((signed char)1, (signed char)1, "(signed char)1 = (signed char)1");
+    ATT_ASSERT(small, small, "int8_t -128 = int8_t -128");
+    ATT_ASSERT(negative, -1, "signed char -1 = int -1");
+    ATT_ASSERT_NE(small, big, "int8_t -128 != int8_t 127");
+    ATT_ASSERT_LT(small, big, "int8_t -128 < int8_t 127");
+    ATT_ASSERT_GE(big, negative, "int8_t 127 >= signed char -1");
 }

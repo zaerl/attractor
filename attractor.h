@@ -145,6 +145,7 @@ typedef enum att_op {
     unsigned char: att_assert_u_c, \
     char *: att_assert_p_c, \
     const char *: att_assert_cp_c, \
+    signed char: att_assert_hhd, \
     short: ATT_GENERIC_SIGNED(EXPECTED, att_assert_hd), \
     unsigned short: ATT_GENERIC_UNSIGNED(EXPECTED, att_assert_u_hu), \
     int: ATT_GENERIC_SIGNED(EXPECTED, att_assert_d), \
@@ -179,6 +180,7 @@ ATT_API unsigned int att_assert_c(char result, char expected, att_op op, const c
 ATT_API unsigned int att_assert_u_c(unsigned char result, unsigned char expected, att_op op, const char *description, const char *file, unsigned int line);
 ATT_API unsigned int att_assert_p_c(const char *result, const char *expected, att_op op, const char *description, const char *file, unsigned int line);
 ATT_API unsigned int att_assert_cp_c(const char *result, const char *expected, att_op op, const char *description, const char *file, unsigned int line);
+ATT_API unsigned int att_assert_hhd(signed char result, signed char expected, att_op op, const char *description, const char *file, unsigned int line);
 ATT_API unsigned int att_assert_hd(short result, short expected, att_op op, const char *description, const char *file, unsigned int line);
 ATT_API unsigned int att_assert_u_hu(unsigned short result, unsigned short expected, att_op op, const char *description, const char *file, unsigned int line);
 ATT_API unsigned int att_assert_d(int result, int expected, att_op op, const char *description, const char *file, unsigned int line);
@@ -399,6 +401,9 @@ inline unsigned int att_assert_cpp(T1 result, T2 expected, att_op op, const char
         } else if constexpr(std::is_same_v<common_type, unsigned char>) {
             return att_assert_u_c(converted_result, converted_expected, op, description, file,
                 line);
+        } else if constexpr(std::is_same_v<common_type, signed char>) {
+            return att_assert_hhd(converted_result, converted_expected, op, description, file,
+                line);
         } else if constexpr(std::is_same_v<common_type, short>) {
             return att_assert_hd(converted_result, converted_expected, op, description, file, line);
         } else if constexpr(std::is_same_v<common_type, unsigned short>) {
@@ -434,9 +439,9 @@ inline unsigned int att_assert_cpp(T1 result, T2 expected, att_op op, const char
         } else {
             // Unsupported type with common_type - compile error
             static_assert(sizeof(T1) == 0,
-                "ATT_ASSERT: Unsupported type. Supported types are: char, short, int, long, long "
-                "long (signed/unsigned), float, double, long double, bool, enumerations, "
-                "std::string, and pointer types.");
+                "ATT_ASSERT: Unsupported type. Supported types are: char, signed char, short, int, "
+                "long, long long (signed/unsigned), float, double, long double, bool, "
+                "enumerations, std::string, and pointer types.");
             return 0;
         }
     } else {
@@ -1330,6 +1335,16 @@ ATT_API unsigned int att_assert_cp_c(const char *result, const char *expected, a
             // A NULL string is printed as an unquoted NULL instead of being passed to %s.
             ATT_ERROR_MESSAGE(result ? result : "NULL", expected ? "\"%s\"" : "%s", result ? "\"%s\"" : "%s", expected ? expected : "NULL", op);
         }
+    }
+
+    return (unsigned int)test;
+}
+
+ATT_API unsigned int att_assert_hhd(signed char result, signed char expected, att_op op, const char *description, const char *file, unsigned int line) {
+    int test = att_assert("signed char", ATT_COMPARE(result, expected, op), description);
+
+    if(!test) {
+        ATT_ERROR_MESSAGE(result, "%hhd", "%hhd", expected, op);
     }
 
     return (unsigned int)test;
