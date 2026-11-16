@@ -5,7 +5,6 @@
  */
 
 #include "../attractor.h"
-#include <stdio.h>
 
 typedef struct unknown_struct {
     int unknown;

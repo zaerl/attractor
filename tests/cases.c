@@ -5,7 +5,6 @@
  */
 
 #include "../attractor.h"
-#include <stddef.h>
 #include <string.h>
 
 ATT_TEST(att_case_alpha) {

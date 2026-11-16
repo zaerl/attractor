@@ -5,7 +5,6 @@
  */
 
 #include "../attractor.h"
-#include <stdio.h>
 
 ATT_TEST(chars) {
     ATT_ASSERT((char)'1', (char)'1', "(char)1 = (char)1");

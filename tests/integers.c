@@ -6,8 +6,6 @@
 
 #include "../attractor.h"
 
-#include <stdio.h>
-
 int int_0(int result) {
     return result;
 }

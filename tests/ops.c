@@ -6,8 +6,6 @@
 
 #include "../attractor.h"
 
-#include <stdio.h>
-
 ATT_TEST(ops) {
     ATT_ASSERT_NE(1, 2, "1 != 2");
     ATT_ASSERT_LT(1, 2, "1 < 2");
