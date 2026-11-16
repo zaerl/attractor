@@ -91,7 +91,10 @@ generate:
 	node $(GEN_SCRIPT)
 	@touch $(GEN_STAMP)
 
+update-version:
+	@node ./scripts/update-version.mjs
+
 clean:
 	rm -f $(TEST_OBJS) $(TEST_OBJS_CPP) $(TEST_EXECUTABLE) $(TEST_EXECUTABLE_CPP) $(GOLDEN_EXECUTABLE) $(GOLDEN_ACTUAL) $(GEN_STAMP)
 
-.PHONY: all clean generate strict test test-cpp test-golden
+.PHONY: all clean generate strict test test-cpp test-golden update-version
