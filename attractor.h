@@ -128,6 +128,15 @@ typedef enum att_op {
     long: att_assert_llu_lld, long long: att_assert_llu_lld, \
     default: FN)
 
+// MSVC does not consider an enumeration compatible with its integer type.
+#if defined(_MSC_VER) && !defined(__clang__)
+    #define ATT_GENERIC_DEFAULT(VALUE, EXPECTED, FN) _Generic((1 ? (VALUE) : 0), \
+        int: ATT_GENERIC_SIGNED(EXPECTED, att_assert_d), \
+        default: FN)
+#else
+    #define ATT_GENERIC_DEFAULT(VALUE, EXPECTED, FN) FN
+#endif
+
 // This macro is automatically generated. Do not edit.
 #define ATT_ASSERT_OP(VALUE, EXPECTED, OP, MESSAGE) \
     (att_set_assert_context(#VALUE, __FILE__, __LINE__), _Generic(VALUE, \
@@ -150,7 +159,7 @@ typedef enum att_op {
     void *: att_assert_p_p, \
     const void *: att_assert_cp_p, \
     _Bool: att_assert_b, \
-    default: att_assert_unknown \
+    default: ATT_GENERIC_DEFAULT(VALUE, EXPECTED, att_assert_unknown) \
 )(VALUE, EXPECTED, OP, MESSAGE, __FILE__, __LINE__))
 #else
 #define ATT_ASSERT_OP(VALUE, EXPECTED, OP, MESSAGE) \

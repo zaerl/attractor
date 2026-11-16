@@ -224,6 +224,11 @@ function generic_decl(type_info, unsigned, is_const) {
         return `${type}: ${unsigned ? 'ATT_GENERIC_UNSIGNED' : 'ATT_GENERIC_SIGNED'}(EXPECTED, ${fn})`;
     }
 
+    // The fallback is a macro: MSVC needs a second dispatch to recognize an enumeration.
+    if(type_info.name === 'default') {
+        return `${type}: ATT_GENERIC_DEFAULT(VALUE, EXPECTED, ${fn})`;
+    }
+
     return `${type}: ${fn}`;
 }
 
