@@ -62,6 +62,18 @@ In case of unknown type the input is assumed to be `const void*`.
 In C++ the two values are converted to their common type, `std::string` is accepted too, and
 comparing two non-pointer values of an unsupported type is a compile error.
 
+Enumerations are compared by their value. In C they are plain integers; in C++ both unscoped and
+scoped (`enum class`) enumerations are accepted and compared through their underlying type, against
+a value of the same enumeration or against an integer. Comparing two different enumeration types is
+a compile error.
+
+```cpp
+enum class color { red, green };
+
+ATT_ASSERT(parse_color("green"), color::green, "green is parsed");
+ATT_ASSERT_NE(parse_color("green"), color::red, "green is not red");
+```
+
 Beyond equality, the `ATT_ASSERT_NE`, `ATT_ASSERT_LT`, `ATT_ASSERT_LE`, `ATT_ASSERT_GT` and
 `ATT_ASSERT_GE` macros compare with the other operators, accepting the same types and keeping the
 typed failure output (`Expected < 10, got 12`):

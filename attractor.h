@@ -30,12 +30,12 @@
     #include <time.h>
 #endif
 
-#define ATT_VERSION_NUMBER 0x120 // MAJOR << 8 | MINOR << 4 | REVISION
+#define ATT_VERSION_NUMBER 0x130 // MAJOR << 8 | MINOR << 4 | REVISION
 #define ATT_VERSION_MAJOR 1
-#define ATT_VERSION_MINOR 2
+#define ATT_VERSION_MINOR 3
 #define ATT_VERSION_REVISION 0
 
-#define ATT_VERSION "1.2.0"
+#define ATT_VERSION "1.3.0"
 
 #ifdef __cplusplus
 // MSVC reports __cplusplus as 199711L unless /Zc:__cplusplus is passed, while _MSVC_LANG
@@ -343,11 +343,32 @@ template <typename T>
 inline constexpr bool att_is_wide_integer =
     std::is_integral_v<T> && !std::is_same_v<T, bool> && sizeof(T) > 1;
 
+// An enumeration, scoped or not, is compared by its underlying integer type.
+template <typename T, typename = void> struct att_enum_decay {
+    using type = T;
+};
+
+template <typename T> struct att_enum_decay<T, std::enable_if_t<std::is_enum_v<T>>> {
+    using type = std::underlying_type_t<T>;
+};
+
 // C++ template function for att_assert to handle type deduction properly
 template <typename T1, typename T2>
 inline unsigned int att_assert_cpp(T1 result, T2 expected, att_op op, const char *description,
     const char *file, unsigned int line) {
-    if constexpr(att_is_wide_integer<T1> && att_is_wide_integer<T2> &&
+    if constexpr(std::is_enum_v<T1> || std::is_enum_v<T2>) {
+        if constexpr(std::is_enum_v<T1> && std::is_enum_v<T2> && !std::is_same_v<T1, T2>) {
+            static_assert(sizeof(T1) == 0,
+                "ATT_ASSERT: Cannot compare two different enumeration types.");
+            return 0;
+        } else {
+            // A scoped enumeration has no implicit conversion, and two values of the same
+            // enumeration have the enumeration itself as common type: convert explicitly.
+            return att_assert_cpp(static_cast<typename att_enum_decay<T1>::type>(result),
+                static_cast<typename att_enum_decay<T2>::type>(expected), op, description, file,
+                line);
+        }
+    } else if constexpr(att_is_wide_integer<T1> && att_is_wide_integer<T2> &&
                  std::is_signed_v<T1> != std::is_signed_v<T2>) {
         // The common type of a signed and an unsigned integer is unsigned, which would turn a
         // negative value into a huge one. Compare the two values mathematically instead.
@@ -405,8 +426,8 @@ inline unsigned int att_assert_cpp(T1 result, T2 expected, att_op op, const char
             // Unsupported type with common_type - compile error
             static_assert(sizeof(T1) == 0,
                 "ATT_ASSERT: Unsupported type. Supported types are: char, short, int, long, long "
-                "long (signed/unsigned), float, double, long double, bool, std::string, and "
-                "pointer types.");
+                "long (signed/unsigned), float, double, long double, bool, enumerations, "
+                "std::string, and pointer types.");
             return 0;
         }
     } else {
