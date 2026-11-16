@@ -12,6 +12,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Changed
 
 ### Fixed
+- Fixed enumeration assertions not compiling with MSVC in C
 
 ## [1.3.0] - 2026-11-16
 
