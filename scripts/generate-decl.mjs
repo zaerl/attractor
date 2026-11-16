@@ -15,6 +15,11 @@ const types = [
         const_ptr: true,
         formats: [ 'c', 'c' ]
     }, {
+        // A type distinct from both char and unsigned char: int8_t. Printed as a number.
+        name: 'signed char',
+        signed: true,
+        formats: [ 'hhd' ]
+    }, {
         name: 'short',
         signed: true,
         unsigned: true,

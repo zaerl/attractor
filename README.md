@@ -34,22 +34,23 @@ The `ATT_ASSERT` macro accepts these types:
 
 1. `char`
 2. `unsigned char`
-3. `char*`
-4. `const char*`
-5. `short`
-6. `unsigned short`
-7. `int`
-8. `unsigned int`
-9. `long`
-10. `unsigned long`
-11. `long long`
-12. `unsigned long long`
-13. `float`
-14. `double`
-15. `long double`
-16. `void*`
-17. `const void*`
-18. `_Bool` (`bool`)
+3. `signed char` (`int8_t`)
+4. `char*`
+5. `const char*`
+6. `short`
+7. `unsigned short`
+8. `int`
+9. `unsigned int`
+10. `long`
+11. `unsigned long`
+12. `long long`
+13. `unsigned long long`
+14. `float`
+15. `double`
+16. `long double`
+17. `void*`
+18. `const void*`
+19. `_Bool` (`bool`)
 
 In case of unknown type the input is assumed to be `const void*`.
 
