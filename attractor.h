@@ -30,12 +30,12 @@
     #include <time.h>
 #endif
 
-#define ATT_VERSION_NUMBER 0x130 // MAJOR << 8 | MINOR << 4 | REVISION
+#define ATT_VERSION_NUMBER 0x131 // MAJOR << 8 | MINOR << 4 | REVISION
 #define ATT_VERSION_MAJOR 1
 #define ATT_VERSION_MINOR 3
-#define ATT_VERSION_REVISION 0
+#define ATT_VERSION_REVISION 1
 
-#define ATT_VERSION "1.3.0"
+#define ATT_VERSION "1.3.1"
 
 #ifdef __cplusplus
 // MSVC reports __cplusplus as 199711L unless /Zc:__cplusplus is passed, while _MSVC_LANG
